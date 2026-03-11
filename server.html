@@ -1,67 +1,50 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>SERVER PICKUP</title>
-    <style>
-        :root { --accent: #5856d6; --bg: #f2f2f7; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
-        header { background: #000; color: #fff; padding: 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
-        .card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-left: 8px solid var(--accent); }
-        .table-no { font-size: 2rem; font-weight: 900; color: var(--accent); }
-        .btn-deliver { width: 100%; margin-top: 15px; padding: 15px; background: #000; color: #fff; border: none; border-radius: 10px; font-weight: 800; cursor: pointer; }
-    </style>
-</head>
+<html>
+<head><title>SERVER PICKUP</title><style>
+    body { font-family: sans-serif; background: #f2f2f7; padding: 20px; }
+    .card { background: #fff; padding: 20px; margin-bottom: 10px; border-radius: 10px; border-left: 10px solid #5856d6; }
+    .btn { background: #000; color: #fff; padding: 10px 20px; border: none; cursor: pointer; border-radius: 5px; float: right; }
+</style></head>
 <body>
-    <header><strong>READY FOR TABLE</strong><div id="time">00:00</div></header>
-    <div class="grid" id="deliveryGrid"></div>
+    <h1>Ready for Delivery</h1>
+    <div id="deliveryGrid"></div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, onValue, push, remove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"; // Standardizing
+    import { getDatabase, ref, onValue, remove, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    const firebaseConfig = {
+    const config = {
         apiKey: "AIzaSyBY1ctdRkTUktpt-uYhRqFxF37jkylxsGs",
         authDomain: "lovelyentclub-pos.firebaseapp.com",
         projectId: "lovelyentclub-pos",
         databaseURL: "https://lovelyentclub-pos-default-rtdb.firebaseio.com"
     };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+    const app = initializeApp(config); const db = getDatabase(app);
 
     onValue(ref(db, 'orders'), (snap) => {
-        const grid = document.getElementById('deliveryGrid');
-        grid.innerHTML = '';
-        const data = snap.val();
-        if(!data) return;
-
-        Object.entries(data).forEach(([id, order]) => {
-            if(order.status === "READY") {
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.innerHTML = `<div class="table-no">${order.table}</div>
-                                 <div style="color:#888; font-family:monospace;">${order.siNumber}</div>
-                                 <div style="margin:10px 0;">${order.details.map(i => `• ${i.qty}x ${i.name}`).join('<br>')}</div>
-                                 <button class="btn-deliver" onclick="deliver('${id}')">MARK DELIVERED</button>`;
+        const grid = document.getElementById('deliveryGrid'); grid.innerHTML = '';
+        const data = snap.val(); if (!data) return;
+        Object.entries(data).forEach(([id, o]) => {
+            if (o.status === "READY") {
+                const card = document.createElement('div'); card.className = 'card';
+                card.innerHTML = `<button class="btn" onclick="delivered('${id}')">DELIVERED</button>
+                                  <b>${o.table}</b><br><small>${o.siNumber}</small>`;
                 grid.appendChild(card);
             }
         });
     });
 
-    window.deliver = (id) => {
+    window.delivered = (id) => {
         onValue(ref(db, `orders/${id}`), (snap) => {
             const data = snap.val();
-            if(data) {
-                // Archive to history for 10-year retention rule
+            if (data) {
                 push(ref(db, 'history'), { ...data, deliveredAt: serverTimestamp() }).then(() => {
                     remove(ref(db, `orders/${id}`));
                 });
             }
         }, { onlyOnce: true });
     };
-    setInterval(() => { document.getElementById('time').innerText = new Date().toLocaleTimeString(); }, 1000);
 </script>
 </body>
 </html>
