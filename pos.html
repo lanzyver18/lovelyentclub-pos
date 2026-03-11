@@ -1,99 +1,82 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database-compat.js"></script>
-    <title>Club POS | Terminal</title>
 </head>
-<body class="bg-slate-950 text-white h-screen overflow-hidden flex">
-
-    <nav class="w-20 bg-black border-r border-slate-800 flex flex-col items-center py-8 gap-10">
-        <div class="w-12 h-12 bg-fuchsia-600 rounded-full flex items-center justify-center font-bold">V</div>
-        <i class="fas fa-th-large text-slate-500 text-xl cursor-pointer hover:text-fuchsia-400"></i>
-        <i class="fas fa-receipt text-slate-500 text-xl cursor-pointer hover:text-fuchsia-400"></i>
-        <i class="fas fa-cog text-slate-500 text-xl cursor-pointer hover:text-fuchsia-400 mt-auto"></i>
+<body class="bg-slate-950 text-white h-screen flex overflow-hidden">
+    <nav class="w-20 bg-black flex flex-col items-center py-6 gap-8 border-r border-slate-800">
+        <div class="w-12 h-12 bg-fuchsia-600 rounded-xl flex items-center justify-center font-black">POS</div>
+        <button class="text-slate-500 hover:text-fuchsia-500"><i class="fa fa-th-large text-2xl"></i></button>
+        <button onclick="location.reload()" class="text-slate-500 hover:text-red-500 mt-auto"><i class="fa fa-sign-out-alt"></i></button>
     </nav>
 
-    <main class="flex-1 flex flex-col p-8">
-        <header class="flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-bold tracking-tighter">FLOOR <span class="text-fuchsia-500">PLAN</span></h1>
-            <div id="active-table-label" class="bg-slate-800 px-6 py-2 rounded-full border border-slate-700 text-fuchsia-400 font-mono">SELECT A TABLE</div>
-        </header>
-
-        <div id="floor-map" class="grid grid-cols-4 gap-6 flex-1">
+    <main class="flex-1 p-8 overflow-y-auto">
+        <h1 class="text-2xl font-bold mb-8 italic tracking-tighter">CLUB <span class="text-fuchsia-500 text-3xl font-black">VIBE</span></h1>
+        <div id="floor-grid" class="grid grid-cols-4 gap-6">
             </div>
     </main>
 
     <aside class="w-96 bg-slate-900 border-l border-slate-800 p-6 flex flex-col">
-        <h2 class="text-xl font-bold mb-6 border-b border-slate-800 pb-4">Current Bill</h2>
-        <div id="cart-items" class="flex-1 overflow-y-auto space-y-4 py-4 text-slate-400 italic">
-            Select a table to start ordering...
+        <h2 id="active-table-title" class="text-xl font-bold text-fuchsia-400 mb-6 uppercase tracking-widest">Select Table</h2>
+        <div id="cart" class="flex-1 space-y-3 overflow-y-auto italic text-slate-500">
+            Click a table to begin...
         </div>
-        
-        <div class="mt-auto pt-6 border-t border-slate-800">
-            <div class="grid grid-cols-2 gap-2 mb-4">
-                <button onclick="addItem('Grey Goose', 350)" class="bg-slate-800 p-3 rounded hover:bg-slate-700">Add Goose ($350)</button>
-                <button onclick="addItem('Moet Chandon', 450)" class="bg-slate-800 p-3 rounded hover:bg-slate-700">Add Moet ($450)</button>
+        <div class="mt-auto space-y-4 pt-6">
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="addToCart('Grey Goose', 450)" class="bg-slate-800 p-3 rounded-lg hover:bg-slate-700 transition-colors">Goose ($450)</button>
+                <button onclick="addToCart('Don Julio', 550)" class="bg-slate-800 p-3 rounded-lg hover:bg-slate-700 transition-colors">Julio ($550)</button>
             </div>
-            <button onclick="submitOrder()" class="w-full bg-fuchsia-600 hover:bg-fuchsia-700 py-4 rounded-xl font-bold text-lg transition-all shadow-lg shadow-fuchsia-500/20">
-                SEND TO BAR
-            </button>
+            <button onclick="sendToBar()" class="w-full bg-fuchsia-600 py-4 rounded-xl font-black text-xl hover:bg-fuchsia-500 transition-all shadow-lg shadow-fuchsia-500/20">SEND ORDER</button>
         </div>
     </aside>
 
     <script src="app.js"></script>
+    <script src="security.js"></script>
     <script>
-        let currentTable = null;
+        let selectedTable = null;
         let cart = [];
-        const tableList = ['V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'D1', 'D2'];
 
-        function initMap() {
-            const map = document.getElementById('floor-map');
-            tableList.forEach(id => {
-                const el = document.createElement('div');
-                el.id = `table-${id}`;
-                el.className = "bg-slate-800 border-2 border-slate-700 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-fuchsia-500 transition-all h-32";
-                el.innerHTML = `<span class="font-bold text-xl">${id}</span><span class="text-xs text-slate-500 uppercase">Available</span>`;
-                el.onclick = () => selectTable(id);
-                map.appendChild(el);
+        window.onload = () => showPinPad((user) => initPOS());
+
+        function initPOS() {
+            const grid = document.getElementById('floor-grid');
+            ['V1','V2','V3','V4','B1','B2','D1','D2'].forEach(id => {
+                const btn = document.createElement('div');
+                btn.className = "h-32 bg-slate-900 border-2 border-slate-800 rounded-2xl flex items-center justify-center cursor-pointer hover:border-fuchsia-500 transition-all";
+                btn.innerHTML = `<span class="text-2xl font-bold text-slate-400">${id}</span>`;
+                btn.onclick = () => {
+                    selectedTable = id;
+                    document.getElementById('active-table-title').innerText = `Table: ${id}`;
+                    document.getElementById('cart').innerHTML = "";
+                    cart = [];
+                };
+                grid.appendChild(btn);
             });
         }
 
-        function selectTable(id) {
-            currentTable = id;
-            document.getElementById('active-table-label').innerText = `ACTIVE: ${id}`;
-            document.getElementById('cart-items').innerHTML = `<p class="text-slate-200">Table ${id} selected. Ready for items.</p>`;
-            cart = [];
+        function addToCart(item, price) {
+            if(!selectedTable) return;
+            cart.push({item, price});
+            const div = document.createElement('div');
+            div.className = "flex justify-between text-white not-italic";
+            div.innerHTML = `<span>${item}</span><span>$${price}</span>`;
+            document.getElementById('cart').appendChild(div);
         }
 
-        function addItem(name, price) {
-            if(!currentTable) return alert("Select a table first!");
-            cart.push({name, price});
-            const itemEl = document.createElement('div');
-            itemEl.className = "flex justify-between bg-slate-800 p-3 rounded text-white";
-            itemEl.innerHTML = `<span>${name}</span><span>$${price}</span>`;
-            document.getElementById('cart-items').appendChild(itemEl);
-        }
-
-        function submitOrder() {
+        function sendToBar() {
             if(!cart.length) return;
-            const orderId = db.ref('orders').push().key;
-            db.ref(`orders/${orderId}`).set({
-                table: currentTable,
-                items: cart.map(i => i.name),
+            db.ref('orders').push({
+                table: selectedTable,
+                items: cart.map(c => c.item),
                 status: 'pending',
                 timestamp: Date.now()
             });
-            alert("Order Sent!");
-            document.getElementById('cart-items').innerHTML = "";
-            cart = [];
+            alert("Order Dispatched!");
+            location.reload();
         }
-
-        initMap();
     </script>
 </body>
 </html>
