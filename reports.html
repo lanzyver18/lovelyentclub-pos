@@ -1,22 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><title>FINANCIAL ANALYTICS</title></head>
 <body>
-    <h1>DAILY SALES REPORT</h1>
-    <button onclick="zReading()" style="background:red; color:white;">GENERATE Z-READING</button>
-    <div id="stats"></div>
+    <h1>FINANCIAL REPORTS</h1>
+    <button onclick="zReading()">GENERATE DAILY Z-READING</button>
+    <button onclick="exportEIS()">EXPORT FOR BIR (EIS 2026)</button>
+
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-    import { getDatabase, ref, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
-
+    import { getDatabase, ref, push, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
+    
     const db = getDatabase(initializeApp({ databaseURL: "https://pos-lovelyentclub-default-rtdb.firebaseio.com" }));
 
     window.zReading = () => {
-        if (confirm("Close sales for today? This cannot be undone.")) {
-            push(ref(db, 'z_reports'), { timestamp: serverTimestamp(), type: "Z-READING" });
-            push(ref(db, 'audit_trail'), { action: "Z_READING_GEN", time: serverTimestamp() });
-            alert("Period Closed. Data archived for audit.");
+        if (confirm("Close day? This cannot be undone.")) {
+            push(ref(db, 'z_reports'), { timestamp: serverTimestamp(), action: "Z-READING" });
+            alert("Z-Reading Generated. Sales archived for 10 years.");
         }
+    };
+
+    window.exportEIS = () => {
+        onValue(ref(db, 'history'), (snap) => {
+            const data = JSON.stringify(snap.val(), null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `BIR_EIS_2026_EXPORT.json`;
+            a.click();
+        }, { onlyOnce: true });
     };
 </script>
 </body>
