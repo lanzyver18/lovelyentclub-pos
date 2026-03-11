@@ -2,56 +2,112 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>KDS MONITOR</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KDS | KITCHEN MONITOR</title>
     <style>
-        body { background: #000; color: #fff; font-family: sans-serif; margin: 0; overflow: hidden; display: flex; flex-direction: column; height: 100vh; }
-        header { background: #fff; color: #000; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; }
-        .kds-grid { flex-grow: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; padding: 15px; overflow-y: auto; }
-        .slot { border: 4px solid #fff; padding: 15px; display: flex; flex-direction: column; }
-        .urgent { border-color: #ff0000; animation: blink 1s infinite; }
-        @keyframes blink { 50% { border-color: #000; } }
-        .slot-head { font-size: 1.5rem; font-weight: 900; border-bottom: 2px solid #fff; margin-bottom: 10px; display: flex; justify-content: space-between; }
-        .btn-bump { background: #fff; color: #000; border: none; padding: 15px; font-weight: 900; font-size: 1.2rem; cursor: pointer; margin-top: auto; }
+        :root { --bg: #0a0a0a; --card: #1c1c1e; --text: #ffffff; --accent: #34c759; --urgent: #ff3b30; }
+        body { font-family: -apple-system, system-ui; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        /* Header Station Selection */
+        header { background: #fff; color: #000; padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid #555; height: 70px; box-sizing: border-box; }
+        .station-badge { background: #000; color: #fff; padding: 8px 16px; font-weight: 900; border-radius: 6px; text-transform: uppercase; font-size: 0.9rem; }
+        
+        /* Order Grid */
+        .kds-grid { flex-grow: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); grid-auto-rows: min-content; gap: 20px; padding: 20px; overflow-y: auto; }
+        
+        /* Order Card */
+        .order-card { background: var(--card); border: 2px solid #333; border-radius: 12px; display: flex; flex-direction: column; height: 350px; transition: border-color 0.3s; }
+        .card-header { padding: 15px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; background: #2c2c2e; border-radius: 10px 10px 0 0; }
+        .table-id { font-size: 1.6rem; font-weight: 900; }
+        .timer { font-family: monospace; font-size: 1.2rem; font-weight: bold; color: var(--accent); }
+        
+        .card-body { padding: 20px; flex-grow: 1; overflow-y: auto; font-size: 1.5rem; font-weight: 600; line-height: 1.4; }
+        .item-row { margin-bottom: 8px; border-bottom: 1px solid #2c2c2e; padding-bottom: 4px; }
+        
+        .card-footer { padding: 15px; }
+        .btn-bump { width: 100%; padding: 18px; background: var(--accent); color: #000; border: none; border-radius: 8px; font-weight: 900; font-size: 1.3rem; cursor: pointer; }
+        
+        /* Critical State */
+        .urgent { border-color: var(--urgent); }
+        .urgent .timer { color: var(--urgent); }
     </style>
 </head>
 <body>
     <header>
-        <div style="font-weight:900;">KITCHEN STATION</div>
-        <div id="kdsClock">00:00</div>
+        <div style="display:flex; align-items:center; gap:15px;">
+            <div class="station-badge">STATION: KITCHEN</div>
+            <div id="clock" style="font-weight:900; font-size: 1.2rem;">00:00:00</div>
+        </div>
+        <div style="font-size: 0.8rem; text-align: right; color: #666;">BIR AUDIT LOGGING ACTIVE</div>
     </header>
-    <div id="kdsGrid" class="kds-grid"></div>
+
+    <div class="kds-grid" id="kdsGrid"></div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-    import { getDatabase, ref, onValue, update, push, serverTimestamp, set, remove } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
-    
-    const db = getDatabase(initializeApp({ databaseURL: "https://pos-lovelyentclub-default-rtdb.firebaseio.com" }));
-    let knownIds = new Set();
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
+    import { getDatabase, ref, onValue, update, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
+
+    const config = { apiKey: "AIzaSyB1BND4Pd7vpd_8LJW1IwZB36-4uFdO6R4", authDomain: "pos-lovelyentclub.firebaseapp.com", databaseURL: "https://pos-lovelyentclub-default-rtdb.firebaseio.com", projectId: "pos-lovelyentclub" };
+    const app = initializeApp(config); const auth = getAuth(app); const db = getDatabase(app);
+
+    signInAnonymously(auth); // Establish authenticated session for audit trail
 
     onValue(ref(db, 'orders'), (snap) => {
-        const grid = document.getElementById('kdsGrid'); grid.innerHTML = '';
-        const data = snap.val(); if(!data) return;
-        
+        const grid = document.getElementById('kdsGrid');
+        grid.innerHTML = '';
+        const data = snap.val();
+        if (!data) return;
+
         Object.entries(data).forEach(([id, order]) => {
-            if(order.status === "PENDING") {
-                if(!knownIds.has(id)) { new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play(); knownIds.add(id); }
+            if (order.status === "PENDING") {
                 const elapsed = Math.floor((Date.now() - order.timestamp) / 1000);
-                const slot = document.createElement('div');
-                slot.className = `slot ${elapsed > 180 ? 'urgent' : ''}`;
-                slot.innerHTML = `
-                    <div class="slot-head"><span>${order.table}</span><span>${Math.floor(elapsed/60)}m</span></div>
-                    <div style="font-size:1.4rem; flex-grow:1;">${order.details.map(i => `• ${i.qty}x ${i.name}`).join('<br>')}</div>
-                    <button class="btn-bump" onclick="bump('${id}', '${order.siNumber}')">DONE</button>`;
-                grid.appendChild(slot);
+                [span_0](start_span)const isUrgent = elapsed > 300; // 5 minutes[span_0](end_span)
+
+                const card = document.createElement('div');
+                card.className = `order-card ${isUrgent ? 'urgent' : ''}`;
+                card.innerHTML = `
+                    <div class="card-header">
+                        <span class="table-id">${order.table}</span>
+                        <span class="timer" data-start="${order.timestamp}">0:00</span>
+                    </div>
+                    <div class="card-body">
+                        ${order.details.map(i => `<div class="item-row">• ${i.qty}x ${i.name}</div>`).join('')}
+                    </div>
+                    <div class="card-footer">
+                        <button class="btn-bump" onclick="bumpOrder('${id}', '${order.siNumber}')">MARK COMPLETED</button>
+                    </div>
+                `;
+                grid.appendChild(card);
             }
         });
     });
 
-    window.bump = (id, si) => {
-        update(ref(db, `orders/${id}`), { status: "READY" });
-        push(ref(db, 'audit_trail'), { action: "KDS_BUMP", si, time: serverTimestamp() });
+    window.bumpOrder = (id, si) => {
+        [span_1](start_span)// Update Order Status[span_1](end_span)
+        update(ref(db, `orders/${id}`), { 
+            status: "READY", 
+            kitchenCompletedAt: serverTimestamp() 
+        });
+
+        // MANDATORY BIR AUDIT: Log completion
+        push(ref(db, 'audit_trail'), { 
+            action: "KITCHEN_BUMP", 
+            siNumber: si, 
+            user: auth.currentUser.uid, 
+            time: serverTimestamp() 
+        });
     };
-    setInterval(() => { document.getElementById('kdsClock').innerText = new Date().toLocaleTimeString(); }, 1000);
+
+    // Global Timer Update
+    setInterval(() => {
+        document.getElementById('clock').innerText = new Date().toLocaleTimeString();
+        document.querySelectorAll('.timer').forEach(el => {
+            const start = parseInt(el.getAttribute('data-start'));
+            const diff = Math.floor((Date.now() - start) / 1000);
+            el.innerText = `${Math.floor(diff/60)}:${(diff % 60).toString().padStart(2, '0')}`;
+        });
+    }, 1000);
 </script>
 </body>
 </html>
