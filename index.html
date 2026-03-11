@@ -4,21 +4,20 @@
     <meta charset="UTF-8">
     <title>KITCHEN MONITOR</title>
     <style>
-        body { background: #000; color: #fff; font-family: sans-serif; margin: 0; }
+        body { background: #000; color: #fff; font-family: -apple-system, sans-serif; margin: 0; overflow: hidden; }
         header { background: #fff; color: #000; padding: 15px; font-weight: 900; font-size: 1.5rem; display: flex; justify-content: space-between; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; padding: 20px; }
-        .card { border: 4px solid #fff; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; height: 300px; }
-        .card.urgent { border-color: red; }
-        .btn-bump { background: #34c759; color: #fff; border: none; padding: 15px; font-weight: 900; border-radius: 8px; cursor: pointer; margin-top: auto; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; padding: 20px; height: 90vh; overflow-y: auto; align-content: start; }
+        .card { border: 4px solid #fff; border-radius: 15px; padding: 20px; display: flex; flex-direction: column; min-height: 250px; background: #1c1c1e; }
+        .btn-bump { background: #34c759; color: #000; border: none; padding: 18px; font-weight: 900; border-radius: 10px; cursor: pointer; margin-top: auto; font-size: 1.2rem; }
     </style>
 </head>
 <body>
-    <header><div>KITCHEN STATION</div><div id="kdsTime">00:00</div></header>
+    <header><div>KITCHEN STATION</div><div id="kdsTime">00:00:00</div></header>
     <div class="grid" id="kdsGrid"></div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, onValue, update, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBY1ctdRkTUktpt-uYhRqFxF37jkylxsGs",
@@ -27,29 +26,30 @@
         databaseURL: "https://lovelyentclub-pos-default-rtdb.firebaseio.com"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+    const db = getDatabase(initializeApp(firebaseConfig));
 
     onValue(ref(db, 'orders'), (snap) => {
-        const grid = document.getElementById('kdsGrid');
-        grid.innerHTML = '';
-        const data = snap.val();
-        if(!data) return;
+        const grid = document.getElementById('kdsGrid'); grid.innerHTML = '';
+        const data = snap.val(); if(!data) return;
 
         Object.entries(data).forEach(([id, order]) => {
             if(order.status === "PENDING") {
                 const elapsed = Math.floor((Date.now() - order.timestamp) / 60000);
                 const card = document.createElement('div');
-                card.className = `card ${elapsed > 5 ? 'urgent' : ''}`;
-                card.innerHTML = `<div style="font-size:1.8rem; font-weight:900;">${order.table} <span style="float:right; font-size:1rem;">${elapsed}m</span></div>
-                                 <div style="flex-grow:1; font-size:1.4rem; margin-top:15px;">${order.details.map(i => `• ${i.qty}x ${i.name}`).join('<br>')}</div>
-                                 <button class="btn-bump" onclick="bump('${id}')">MARK DONE</button>`;
+                card.className = 'card';
+                card.innerHTML = `<div style="font-size:1.8rem; font-weight:900; border-bottom:2px solid #fff; padding-bottom:10px;">
+                                 ${order.table} <span style="float:right; font-size:1rem; color:#34c759;">${elapsed}m</span></div>
+                                 <div style="flex-grow:1; font-size:1.5rem; margin-top:15px; font-weight:bold;">${order.details.map(i => `• ${i.qty}x ${i.name}`).join('<br>')}</div>
+                                 <button class="btn-bump" onclick="bump('${id}', '${order.siNumber}')">DONE</button>`;
                 grid.appendChild(card);
             }
         });
     });
 
-    window.bump = (id) => { update(ref(db, `orders/${id}`), { status: "READY" }); };
+    window.bump = (id, si) => { 
+        update(ref(db, `orders/${id}`), { status: "READY" }); 
+        push(ref(db, 'audit_trail'), { action: "KITCHEN_BUMP", si, time: serverTimestamp() });
+    };
     setInterval(() => { document.getElementById('kdsTime').innerText = new Date().toLocaleTimeString(); }, 1000);
 </script>
 </body>
