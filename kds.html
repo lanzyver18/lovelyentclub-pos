@@ -1,39 +1,31 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database-compat.js"></script>
 </head>
-<body class="bg-black text-white p-6">
-    <div class="flex justify-between items-center mb-10">
-        <h1 class="text-5xl font-black text-emerald-500 italic uppercase">Live Orders</h1>
-        <div id="timer" class="text-2xl font-mono text-slate-500"></div>
-    </div>
-
-    <div id="kds-list" class="grid grid-cols-1 md:grid-cols-4 gap-6"></div>
-
+<body class="bg-black text-white p-8">
+    <h1 class="text-4xl font-black text-emerald-500 mb-10 italic">BAR ORDERS</h1>
+    <div id="orders" class="grid grid-cols-1 md:grid-cols-4 gap-6"></div>
     <script src="app.js"></script>
     <script>
-        setInterval(() => document.getElementById('timer').innerText = new Date().toLocaleTimeString(), 1000);
-
         db.ref('orders').on('value', snap => {
-            const list = document.getElementById('kds-list');
-            list.innerHTML = "";
-            const orders = snap.val();
-            for(let id in orders) {
-                if(orders[id].status === 'pending') {
-                    list.innerHTML += `
+            const div = document.getElementById('orders'); div.innerHTML = "";
+            const data = snap.val();
+            for(let id in data) {
+                if(data[id].status === 'pending') {
+                    div.innerHTML += `
                         <div class="bg-slate-900 border-l-8 border-emerald-500 p-6 rounded-r-xl">
-                            <h2 class="text-4xl font-bold mb-4">${orders[id].table}</h2>
-                            <ul class="text-xl mb-6 space-y-2">${orders[id].items.map(i => `<li>- ${i}</li>`).join('')}</ul>
-                            <button onclick="complete('${id}')" class="w-full bg-emerald-600 py-3 font-bold rounded">SERVED</button>
+                            <h2 class="text-3xl font-bold mb-4">${data[id].table}</h2>
+                            <ul class="mb-6">${data[id].items.map(i => `<li>• ${i}</li>`).join('')}</ul>
+                            <button onclick="done('${id}')" class="w-full bg-emerald-600 py-3 rounded font-bold">SERVED</button>
                         </div>
                     `;
                 }
             }
         });
-        function complete(id) { db.ref('orders/'+id).update({status: 'completed'}); }
+        function done(id) { db.ref('orders/'+id).update({status:'done'}); }
     </script>
 </body>
 </html>
