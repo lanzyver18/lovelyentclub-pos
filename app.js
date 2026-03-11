@@ -1,4 +1,4 @@
-// Firebase Configuration - Replace with your own from Firebase Console
+// app.js
 const firebaseConfig = {
   apiKey: "AIzaSyBY1ctdRkTUktpt-uYhRqFxF37jkylxsGs",
   authDomain: "lovelyentclub-pos.firebaseapp.com",
@@ -10,14 +10,10 @@ const firebaseConfig = {
   measurementId: "G-6D8ZF67C2T"
 };
 
-// Initialize
+// Initialize Firebase using the Compat (v9) SDK
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 const db = firebase.database();
 
-// Helper: Format Currency
-const toUSD = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: PHP' }).format(num);
-
-// Helper: Get Timestamp
-const getTime = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+console.log("Club POS System Connected to: " + firebaseConfig.projectId);
