@@ -2,38 +2,68 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>LOVELY ENT - COMPLIANT POS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WAITER TERMINAL - BIR COMPLIANT</title>
     <style>
-        .bir-header { background: #000; color: #fff; font-size: 11px; padding: 10px; text-align: center; font-family: monospace; }
-        .receipt-warning { color: #d32f2f; font-weight: 900; text-align: center; border: 2px solid #d32f2f; padding: 5px; margin: 10px; }
+        body { font-family: sans-serif; margin: 0; padding: 20px; }
+        .bir-banner { background: #000; color: #fff; padding: 10px; text-align: center; font-size: 12px; }
+        .not-an-or { color: red; font-weight: bold; text-align: center; border: 2px solid red; padding: 10px; margin: 10px 0; }
+        .menu-btn { padding: 20px; margin: 5px; cursor: pointer; border: 2px solid #000; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div class="bir-header">
-        OFFICIAL BUSINESS SYSTEM | LOVELY ENT CLUB<br>
-        TIN: 123-456-789-000-000 | VAT REGISTERED<br>
-        SYSTEM ID: COMPLIANT-KDM-2026
+    <div class="bir-banner">
+        <strong>LOVELY ENT CLUB</strong> | TIN: 123-456-789-000 | VAT REGISTERED<br>
+        PTU: PENDING-2026-ACCREDITATION
     </div>
-
-    <div class="receipt-warning">*** THIS IS NOT AN OFFICIAL RECEIPT ***</div>
+    <div class="not-an-or">*** THIS IS NOT AN OFFICIAL RECEIPT ***</div>
 
     <div id="app">
-        <button onclick="handleOrder()">SEND TO PREP</button>
+        <h2 id="tableDisplay">SELECT TABLE</h2>
+        <div id="orderSummary"></div>
+        <button class="menu-btn" onclick="submitOrder()" style="background: #000; color: #fff;">SEND TO PREP</button>
     </div>
 
-    <script type="module">
-        import { processSecureOrder } from './controller.js';
-        // Initialize Firebase...
-        
-        window.handleOrder = async () => {
-            try {
-                await processSecureOrder(db, orderData, currentTable, MENU);
-                alert("Order recorded in Audit Trail and sent to Kitchen.");
-                resetOrder();
-            } catch (e) {
-                console.error("Compliance Error: Transaction failed.");
-            }
-        };
-    </script>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+    import { getDatabase, ref, runTransaction, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
+
+    const firebaseConfig = { apiKey: "AIzaSyB1BND4Pd7vpd_8LJW1IwZB36-4uFdO6R4", authDomain: "pos-lovelyentclub.firebaseapp.com", databaseURL: "https://pos-lovelyentclub-default-rtdb.firebaseio.com", projectId: "pos-lovelyentclub" };
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let currentOrder = { table: "Table 1", items: ["Burger x1"], total: 280 };
+
+    window.submitOrder = async () => {
+        const systemRef = ref(db, 'system_controls');
+
+        // BIR MANDATORY: Non-Volatile Sequential Numbering
+        await runTransaction(systemRef, (current) => {
+            if (!current) return { lastSI: 1, accumulatedGrandTotal: currentOrder.total };
+            return {
+                lastSI: (current.lastSI || 0) + 1,
+                accumulatedGrandTotal: (current.accumulatedGrandTotal || 0) + currentOrder.total
+            };
+        }).then((result) => {
+            const meta = result.snapshot.val();
+            const siNumber = `SI-${String(meta.lastSI).padStart(6, '0')}`;
+
+            const finalOrder = {
+                siNumber,
+                table: currentOrder.table,
+                items: currentOrder.items,
+                totalValue: currentOrder.total,
+                vatAmount: currentOrder.total * 0.12,
+                accumulatedTotal: meta.accumulatedGrandTotal,
+                timestamp: serverTimestamp(),
+                status: "PENDING"
+            };
+
+            push(ref(db, 'orders'), finalOrder);
+            push(ref(db, 'audit_trail'), { action: "GENERATED_SI", siNumber, time: serverTimestamp() });
+            alert("Order Sent: " + siNumber);
+        });
+    };
+</script>
 </body>
 </html>
