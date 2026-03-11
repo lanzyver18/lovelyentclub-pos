@@ -1,18 +1,26 @@
 <!DOCTYPE html>
 <html>
-<head><title>SERVER PICKUP</title><style>
-    body { font-family: sans-serif; background: #f2f2f7; padding: 20px; }
-    .card { background: #fff; padding: 20px; margin-bottom: 10px; border-radius: 10px; border-left: 10px solid #5856d6; }
-    .btn { background: #000; color: #fff; padding: 10px 20px; border: none; cursor: pointer; border-radius: 5px; float: right; }
-</style></head>
+<head>
+    <title>SERVER PICKUP</title>
+    <style>
+        body { font-family: sans-serif; background: #f2f2f7; padding: 20px; margin: 0; padding-bottom: 60px; }
+        .card { background: #fff; padding: 20px; margin-bottom: 15px; border-radius: 12px; border-left: 10px solid #5856d6; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .btn { background: #000; color: #fff; padding: 12px 20px; border: none; cursor: pointer; border-radius: 8px; float: right; font-weight: bold; }
+        /* Status Bar */
+        #status-bar { position: fixed; bottom: 0; left: 0; width: 100%; padding: 10px; text-align: center; font-weight: bold; font-size: 0.8rem; }
+        .online { background: #34c759; color: #fff; }
+        .offline { background: #ff3b30; color: #fff; }
+    </style>
+</head>
 <body>
     <h1>Ready for Delivery</h1>
     <div id="deliveryGrid"></div>
+    <div id="status-bar" class="offline">CONNECTING...</div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"; // Standardizing
-    import { getDatabase, ref, onValue, remove, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getDatabase, ref, onValue, remove, push, serverTimestamp, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
     const config = {
         apiKey: "AIzaSyBY1ctdRkTUktpt-uYhRqFxF37jkylxsGs",
@@ -20,28 +28,53 @@
         projectId: "lovelyentclub-pos",
         databaseURL: "https://lovelyentclub-pos-default-rtdb.firebaseio.com"
     };
-    const app = initializeApp(config); const db = getDatabase(app);
+    const app = initializeApp(config); 
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+
+    signInAnonymously(auth);
+
+    // Connection Monitor
+    const statusDiv = document.getElementById('status-bar');
+    onValue(ref(db, '.info/connected'), (snap) => {
+        if (snap.val() === true) {
+            statusDiv.innerText = "ONLINE - LINKED TO LOVELY ENT CLOUD";
+            statusDiv.className = "online";
+        } else {
+            statusDiv.innerText = "OFFLINE - CHECK WI-FI";
+            statusDiv.className = "offline";
+        }
+    });
 
     onValue(ref(db, 'orders'), (snap) => {
-        const grid = document.getElementById('deliveryGrid'); grid.innerHTML = '';
-        const data = snap.val(); if (!data) return;
+        const grid = document.getElementById('deliveryGrid'); 
+        grid.innerHTML = '';
+        const data = snap.val(); 
+        if (!data) return;
+        
         Object.entries(data).forEach(([id, o]) => {
             if (o.status === "READY") {
-                const card = document.createElement('div'); card.className = 'card';
+                const card = document.createElement('div'); 
+                card.className = 'card';
                 card.innerHTML = `<button class="btn" onclick="delivered('${id}')">DELIVERED</button>
-                                  <b>${o.table}</b><br><small>${o.siNumber}</small>`;
+                                  <b style="font-size:1.5rem">${o.table}</b><br><small>${o.siNumber}</small>`;
                 grid.appendChild(card);
             }
         });
     });
 
     window.delivered = (id) => {
-        onValue(ref(db, `orders/${id}`), (snap) => {
+        const orderRef = ref(db, `orders/${id}`);
+        onValue(orderRef, (snap) => {
             const data = snap.val();
             if (data) {
-                push(ref(db, 'history'), { ...data, deliveredAt: serverTimestamp() }).then(() => {
-                    remove(ref(db, `orders/${id}`));
-                });
+                // Ensure data moves to history node
+                push(ref(db, 'history'), { ...data, deliveredAt: serverTimestamp(), status: "CLOSED" })
+                .then(() => {
+                    remove(orderRef);
+                    push(ref(db, 'audit_trail'), { action: "DELIVERY_COMPLETE", si: data.siNumber, time: serverTimestamp() });
+                })
+                .catch(err => alert("Archive Error: " + err.message));
             }
         }, { onlyOnce: true });
     };
