@@ -1,30 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FINANCIAL BACKEND</title>
+    <style>
+        body { font-family: sans-serif; padding: 30px; background: #f8f9fa; }
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
+        .card { background: #fff; border: 2px solid #000; padding: 20px; text-align: center; }
+        .val { font-size: 2.5rem; font-weight: 900; display: block; }
+        table { width: 100%; border-collapse: collapse; background: #fff; border: 2px solid #000; }
+        th { background: #000; color: #fff; padding: 15px; text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid #ddd; }
+    </style>
+</head>
 <body>
-    <h1>BIR COMPLIANCE CENTER</h1>
-    <button onclick="zReading()">GENERATE Z-READING</button>
-    <button onclick="exportEIS()">EXPORT FOR BIR (EIS 2026)</button>
+    <h1>FINANCIAL ANALYTICS</h1>
+    <div class="stats">
+        <div class="card"><span class="val" id="rev">₱0</span>GROSS REVENUE</div>
+        <div class="card"><span class="val" id="count">0</span>TOTAL ORDERS</div>
+        <div class="card"><button onclick="zReading()" style="background:red; color:white; padding:15px; font-weight:900; border:none; cursor:pointer;">GENERATE Z-READING</button></div>
+    </div>
+    <table>
+        <thead><tr><th>SI Number</th><th>Table</th><th>Value</th><th>VAT (12%)</th><th>Time</th></tr></thead>
+        <tbody id="hist"></tbody>
+    </table>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-    import { getDatabase, ref, push, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
-    
+    import { getDatabase, ref, onValue, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
     const db = getDatabase(initializeApp({ databaseURL: "https://pos-lovelyentclub-default-rtdb.firebaseio.com" }));
 
-    window.zReading = () => {
-        if (!confirm("This will close the current financial period. Continue?")) return;
-        push(ref(db, 'z_reports'), { timestamp: serverTimestamp(), action: "Z_READING" });
-        alert("Z-Reading logged. Data archived according to 10-year rule.");
-    };
+    onValue(ref(db, 'history'), (snap) => {
+        const data = snap.val(); if(!data) return;
+        let rev = 0; const tbody = document.getElementById('hist'); tbody.innerHTML = '';
+        Object.values(data).forEach(o => {
+            rev += o.totalValue;
+            tbody.innerHTML += `<tr><td>${o.siNumber}</td><td>${o.table}</td><td>₱${o.totalValue.toLocaleString()}</td><td>₱${o.vatAmount.toFixed(2)}</td><td>${new Date(o.timestamp).toLocaleTimeString()}</td></tr>`;
+        });
+        document.getElementById('rev').innerText = "₱" + rev.toLocaleString();
+        document.getElementById('count').innerText = Object.keys(data).length;
+    });
 
-    window.exportEIS = () => {
-        onValue(ref(db, 'history'), (snap) => {
-            const blob = new Blob([JSON.stringify(snap.val(), null, 2)], { type: 'application/json' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `BIR_EIS_2026_EXPORT.json`;
-            a.click();
-        }, { onlyOnce: true });
+    window.zReading = () => {
+        if(confirm("Generate Z-Reading? This will close the period.")) {
+            push(ref(db, 'z_reports'), { timestamp: serverTimestamp(), type: "Z-READING" });
+            alert("Z-Reading Generated. Data preserved for 10-year retention rule.");
+        }
     };
 </script>
 </body>
