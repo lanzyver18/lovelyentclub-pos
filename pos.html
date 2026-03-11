@@ -1,53 +1,147 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lovely Club | POS Terminal</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database-compat.js"></script>
-    <title>POS Terminal</title>
-</head>
-<body class="bg-slate-950 text-white h-screen flex overflow-hidden">
-    <main class="flex-1 p-8 overflow-y-auto">
-        <h1 class="text-3xl font-black italic mb-8">LOVELY <span class="text-fuchsia-500">CLUB</span></h1>
-        <div id="floor" class="grid grid-cols-4 gap-6"></div>
-    </main>
-
-    <aside class="w-96 bg-slate-900 border-l border-slate-800 p-6 flex flex-col">
-        <h2 id="table-id" class="text-2xl font-bold text-fuchsia-400 mb-6 uppercase">Select Table</h2>
-        <div id="cart" class="flex-1 space-y-2 overflow-y-auto border-b border-slate-800 mb-4"></div>
-        <div class="grid grid-cols-2 gap-2 mb-4">
-            <button onclick="add('Vodka Bottle', 350)" class="bg-slate-800 p-3 rounded-lg hover:bg-slate-700">Vodka $350</button>
-            <button onclick="add('Champagne', 500)" class="bg-slate-800 p-3 rounded-lg hover:bg-slate-700">Champ $500</button>
-        </div>
-        <button onclick="send()" class="w-full bg-fuchsia-600 py-4 rounded-xl font-black text-xl hover:scale-95 transition-all">SEND TO BAR</button>
-    </aside>
-
+    
     <script src="app.js"></script>
     <script src="security.js"></script>
-    <script>
-        let currentTable = null; let cart = [];
-        window.onload = () => showPinPad(() => {
-            const floor = document.getElementById('floor');
-            ['V1','V2','V3','V4','B1','B2','VIP-1','VIP-2'].forEach(id => {
-                const t = document.createElement('div');
-                t.className = "h-32 bg-slate-800 border-2 border-slate-700 rounded-2xl flex items-center justify-center cursor-pointer hover:border-fuchsia-500 font-bold text-xl";
-                t.innerText = id;
-                t.onclick = () => { currentTable = id; document.getElementById('table-id').innerText = "Table: " + id; };
-                floor.appendChild(t);
-            });
-        });
 
-        function add(n, p) {
-            if(!currentTable) return alert("Pick a table!");
-            cart.push({n, p});
-            document.getElementById('cart').innerHTML += `<div class="flex justify-between"><span>${n}</span><span>$${p}</span></div>`;
+    <style>
+        .table-active { border-color: #d946ef !important; background: rgba(217, 70, 239, 0.1); }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-slate-950 text-white h-screen flex overflow-hidden">
+
+    <nav class="w-20 bg-black border-r border-slate-800 flex flex-col items-center py-8 gap-10">
+        <div class="w-12 h-12 bg-fuchsia-600 rounded-full flex items-center justify-center font-bold shadow-lg shadow-fuchsia-500/50">L</div>
+        <button onclick="location.reload()" class="text-slate-500 hover:text-white transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+        </button>
+    </nav>
+
+    <main class="flex-1 p-10 overflow-y-auto">
+        <div class="flex justify-between items-center mb-10">
+            <h1 class="text-4xl font-black italic tracking-tighter">LOVELY <span class="text-fuchsia-500">POS</span></h1>
+            <div id="connection-status" class="text-xs font-mono px-3 py-1 rounded-full bg-slate-800 text-slate-400">CONNECTING...</div>
+        </div>
+
+        <div id="floor-grid" class="grid grid-cols-2 md:grid-cols-4 gap-6">
+            </div>
+    </main>
+
+    <aside class="w-96 bg-slate-900 border-l border-slate-800 p-8 flex flex-col shadow-2xl">
+        <div class="mb-8">
+            <h2 id="display-table" class="text-2xl font-bold text-fuchsia-500 uppercase tracking-widest">No Table</h2>
+            <p class="text-slate-500 text-sm">Active Session</p>
+        </div>
+
+        <div id="cart-list" class="flex-1 space-y-4 overflow-y-auto mb-6 pr-2">
+            <p class="text-slate-600 italic text-center mt-20">Select a table to start...</p>
+        </div>
+
+        <div class="space-y-4 pt-6 border-t border-slate-800">
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="handleAddToCart('Vodka Premium', 350)" class="bg-slate-800 hover:bg-slate-700 p-4 rounded-xl font-semibold transition-all">Vodka $350</button>
+                <button onclick="handleAddToCart('Ace of Spades', 1200)" class="bg-slate-800 hover:bg-slate-700 p-4 rounded-xl font-semibold transition-all">Ace $1200</button>
+            </div>
+            <button onclick="handleSendOrder()" class="w-full bg-fuchsia-600 hover:bg-fuchsia-500 py-5 rounded-2xl font-black text-xl shadow-lg shadow-fuchsia-500/20 active:scale-95 transition-all">
+                SEND TO BAR
+            </button>
+        </div>
+    </aside>
+
+    <script>
+        let selectedTable = null;
+        let cart = [];
+
+        // 1. Initialize System
+        window.onload = () => {
+            if (typeof showPinPad === 'function') {
+                showPinPad((user) => {
+                    console.log("Logged in:", user.name);
+                    renderTables();
+                    checkFirebase();
+                });
+            } else {
+                console.error("security.js not found!");
+                renderTables(); // Fallback for testing
+            }
+        };
+
+        function checkFirebase() {
+            const status = document.getElementById('connection-status');
+            if (db) {
+                status.innerText = "ONLINE";
+                status.className = "text-xs font-mono px-3 py-1 rounded-full bg-emerald-900/30 text-emerald-400";
+            }
         }
 
-        function send() {
-            if(!cart.length) return;
-            db.ref('orders').push({ table: currentTable, items: cart.map(i => i.n), status: 'pending', time: Date.now() });
-            alert("Order Sent!");
-            location.reload();
+        function renderTables() {
+            const grid = document.getElementById('floor-grid');
+            const tables = ['V1', 'V2', 'V3', 'V4', 'B1', 'B2', 'VIP-A', 'VIP-B'];
+            grid.innerHTML = '';
+            
+            tables.forEach(id => {
+                const div = document.createElement('div');
+                div.id = `table-${id}`;
+                div.className = "h-32 bg-slate-900 border-2 border-slate-800 rounded-3xl flex flex-col items-center justify-center cursor-pointer hover:border-fuchsia-500 transition-all group";
+                div.innerHTML = `
+                    <span class="text-2xl font-black text-slate-500 group-hover:text-fuchsia-500">${id}</span>
+                    <span class="text-[10px] text-slate-700 uppercase font-bold tracking-widest mt-1">Ready</span>
+                `;
+                div.onclick = () => selectThisTable(id);
+                grid.appendChild(div);
+            });
+        }
+
+        function selectThisTable(id) {
+            // UI Update
+            if(selectedTable) document.getElementById(`table-${selectedTable}`).classList.remove('table-active');
+            selectedTable = id;
+            document.getElementById(`table-${id}`).classList.add('table-active');
+            document.getElementById('display-table').innerText = `TABLE ${id}`;
+            
+            // Logic Reset
+            cart = [];
+            document.getElementById('cart-list').innerHTML = "";
+        }
+
+        function handleAddToCart(name, price) {
+            if (!selectedTable) return alert("Please select a table on the floor map first.");
+            
+            cart.push({ name, price });
+            const itemDiv = document.createElement('div');
+            itemDiv.className = "flex justify-between items-center bg-slate-800/50 p-4 rounded-xl border border-slate-800 animate-in fade-in zoom-in duration-300";
+            itemDiv.innerHTML = `<span class="font-bold">${name}</span><span class="text-fuchsia-400 font-mono">$${price}</span>`;
+            document.getElementById('cart-list').appendChild(itemDiv);
+        }
+
+        function handleSendOrder() {
+            if (!selectedTable || cart.length === 0) return alert("Cart is empty or no table selected.");
+
+            const orderData = {
+                table: selectedTable,
+                items: cart.map(i => i.name),
+                status: 'pending',
+                timestamp: Date.now()
+            };
+
+            db.ref('orders').push(orderData)
+                .then(() => {
+                    alert(`Order sent for ${selectedTable}!`);
+                    location.reload(); // Refresh to clear state
+                })
+                .catch(err => alert("Firebase Error: " + err.message));
         }
     </script>
 </body>
