@@ -13,9 +13,10 @@
         .main { flex-grow: 1; display: flex; flex-direction: column; }
         .header { background: #fff; padding: 15px 25px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; }
         .menu-grid { padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; overflow-y: auto; }
-        .item-card { background: #fff; border-radius: 15px; padding: 20px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); cursor: pointer; }
+        .item-card { background: #fff; border-radius: 15px; padding: 20px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); cursor: pointer; border: 2px solid transparent; }
+        .item-card:active { border-color: var(--accent); }
         .cart-panel { width: 350px; background: #fff; border-left: 1px solid #ddd; display: flex; flex-direction: column; }
-        .cart-items { flex-grow: 1; padding: 20px; overflow-y: auto; }
+        .cart-items { flex-grow: 1; padding: 20px; overflow-y: auto; font-family: monospace; }
         .footer { padding: 20px; background: #f9f9f9; border-top: 1px solid #ddd; }
         .btn-send { width: 100%; padding: 20px; background: #000; color: #fff; border: none; border-radius: 12px; font-weight: 900; font-size: 1.1rem; cursor: pointer; }
         .bir-txt { font-size: 9px; text-align: center; color: #999; margin-top: 10px; }
@@ -25,20 +26,20 @@
     <div class="sidebar" id="tableGrid"></div>
     <div class="main">
         <header class="header">
-            <div><strong id="tableLabel">SELECT TABLE</strong><br><small>LOVELY ENT POS v2026</small></div>
-            <div id="clock" style="font-weight:900;">00:00</div>
+            <div><strong id="tableLabel" style="font-size:1.2rem;">SELECT TABLE</strong><br><small>LOVELY ENT POS v2026</small></div>
+            <div id="clock" style="font-weight:900; font-size:1.2rem;">00:00</div>
         </header>
         <div class="menu-grid" id="menuGrid"></div>
     </div>
     <div class="cart-panel">
-        <div style="padding:20px; font-weight:900; border-bottom:1px solid #eee;">ORDER LIST</div>
+        <div style="padding:20px; font-weight:900; border-bottom:1px solid #eee; background:#000; color:#fff;">ORDER SUMMARY</div>
         <div class="cart-items" id="cartDisplay"></div>
         <div class="footer">
-            <div style="display:flex; justify-content:space-between; font-weight:900; font-size:1.2rem; margin-bottom:15px;">
+            <div style="display:flex; justify-content:space-between; font-weight:900; font-size:1.4rem; margin-bottom:15px;">
                 <span>TOTAL</span><span id="totalTxt">₱0</span>
             </div>
             <button class="btn-send" onclick="sendOrder()">SEND TO KITCHEN</button>
-            <div class="bir-txt">*** NOT AN OFFICIAL RECEIPT ***<br>TIN: 123-456-789-000</div>
+            <div class="bir-txt">*** NOT AN OFFICIAL RECEIPT ***<br>TIN: 123-456-789-000 | PTU-PENDING</div>
         </div>
     </div>
 
@@ -61,14 +62,14 @@
     const auth = getAuth(app);
     const db = getDatabase(app);
 
-    signInAnonymously(auth);
+    signInAnonymously(auth).then(() => console.log("Secure Auth Active"));
 
-    const MENU = { "Burger": 280, "Wings": 250, "Beer": 120, "Pizza": 450, "Soda": 80 };
-    const TABLES = ["T1", "T2", "T3", "C1", "C2", "V1"];
+    const MENU = { "Burger": 280, "Wings": 250, "Beer": 120, "Pizza": 450, "Nachos": 180, "Soda": 80 };
+    const TABLES = ["T1", "T2", "T3", "T4", "C1", "C2", "V1", "V2"];
     let cart = {}; let currentTable = "";
 
     document.getElementById('tableGrid').innerHTML = TABLES.map(t => `<div class="tab-btn" onclick="setTable(this, '${t}')">${t}</div>`).join('');
-    document.getElementById('menuGrid').innerHTML = Object.entries(MENU).map(([n, p]) => `<div class="item-card" onclick="addToCart('${n}', ${p})"><strong>${n}</strong><br>₱${p}</div>`).join('');
+    document.getElementById('menuGrid').innerHTML = Object.entries(MENU).map(([n, p]) => `<div class="item-card" onclick="addToCart('${n}', ${p})"><strong>${n}</strong><br><span style="color:var(--accent)">₱${p}</span></div>`).join('');
 
     window.setTable = (el, t) => {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -81,14 +82,14 @@
     function updateUI() {
         let total = 0;
         document.getElementById('cartDisplay').innerHTML = Object.keys(cart).map(k => {
-            total += (cart[k] * MENU[k]);
-            return `<div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span>${cart[k]}x ${k}</span><span>₱${cart[k]*MENU[k]}</span></div>`;
+            const sub = cart[k] * MENU[k]; total += sub;
+            return `<div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span>${cart[k]}x ${k}</span><span>₱${sub}</span></div>`;
         }).join('');
         document.getElementById('totalTxt').innerText = "₱" + total.toLocaleString();
     }
 
     window.sendOrder = async () => {
-        if(!currentTable || Object.keys(cart).length === 0) return alert("Missing Table or Items");
+        if(!currentTable || Object.keys(cart).length === 0) return alert("Select Table and Items!");
         const systemRef = ref(db, 'system_controls');
 
         await runTransaction(systemRef, (curr) => {
@@ -103,8 +104,9 @@
                 details: Object.keys(cart).map(k => ({ name: k, qty: cart[k] })),
                 timestamp: Date.now(), status: "PENDING"
             });
-            alert("Sent: " + si); cart = {}; updateUI();
-        });
+            push(ref(db, 'audit_trail'), { action: "ORDER_SENT", si, time: serverTimestamp() });
+            alert("ORDER SENT: " + si); cart = {}; updateUI();
+        }).catch(err => alert("Sync Error. Check Firebase Rules."));
     };
     setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString(); }, 1000);
 </script>
