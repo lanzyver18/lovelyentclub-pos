@@ -1,80 +1,52 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database-compat.js"></script>
+    <title>POS Terminal</title>
 </head>
 <body class="bg-slate-950 text-white h-screen flex overflow-hidden">
-    <nav class="w-20 bg-black flex flex-col items-center py-6 gap-8 border-r border-slate-800">
-        <div class="w-12 h-12 bg-fuchsia-600 rounded-xl flex items-center justify-center font-black">POS</div>
-        <button class="text-slate-500 hover:text-fuchsia-500"><i class="fa fa-th-large text-2xl"></i></button>
-        <button onclick="location.reload()" class="text-slate-500 hover:text-red-500 mt-auto"><i class="fa fa-sign-out-alt"></i></button>
-    </nav>
-
     <main class="flex-1 p-8 overflow-y-auto">
-        <h1 class="text-2xl font-bold mb-8 italic tracking-tighter">CLUB <span class="text-fuchsia-500 text-3xl font-black">VIBE</span></h1>
-        <div id="floor-grid" class="grid grid-cols-4 gap-6">
-            </div>
+        <h1 class="text-3xl font-black italic mb-8">LOVELY <span class="text-fuchsia-500">CLUB</span></h1>
+        <div id="floor" class="grid grid-cols-4 gap-6"></div>
     </main>
 
     <aside class="w-96 bg-slate-900 border-l border-slate-800 p-6 flex flex-col">
-        <h2 id="active-table-title" class="text-xl font-bold text-fuchsia-400 mb-6 uppercase tracking-widest">Select Table</h2>
-        <div id="cart" class="flex-1 space-y-3 overflow-y-auto italic text-slate-500">
-            Click a table to begin...
+        <h2 id="table-id" class="text-2xl font-bold text-fuchsia-400 mb-6 uppercase">Select Table</h2>
+        <div id="cart" class="flex-1 space-y-2 overflow-y-auto border-b border-slate-800 mb-4"></div>
+        <div class="grid grid-cols-2 gap-2 mb-4">
+            <button onclick="add('Vodka Bottle', 350)" class="bg-slate-800 p-3 rounded-lg hover:bg-slate-700">Vodka $350</button>
+            <button onclick="add('Champagne', 500)" class="bg-slate-800 p-3 rounded-lg hover:bg-slate-700">Champ $500</button>
         </div>
-        <div class="mt-auto space-y-4 pt-6">
-            <div class="grid grid-cols-2 gap-2">
-                <button onclick="addToCart('Grey Goose', 450)" class="bg-slate-800 p-3 rounded-lg hover:bg-slate-700 transition-colors">Goose ($450)</button>
-                <button onclick="addToCart('Don Julio', 550)" class="bg-slate-800 p-3 rounded-lg hover:bg-slate-700 transition-colors">Julio ($550)</button>
-            </div>
-            <button onclick="sendToBar()" class="w-full bg-fuchsia-600 py-4 rounded-xl font-black text-xl hover:bg-fuchsia-500 transition-all shadow-lg shadow-fuchsia-500/20">SEND ORDER</button>
-        </div>
+        <button onclick="send()" class="w-full bg-fuchsia-600 py-4 rounded-xl font-black text-xl hover:scale-95 transition-all">SEND TO BAR</button>
     </aside>
 
     <script src="app.js"></script>
     <script src="security.js"></script>
     <script>
-        let selectedTable = null;
-        let cart = [];
-
-        window.onload = () => showPinPad((user) => initPOS());
-
-        function initPOS() {
-            const grid = document.getElementById('floor-grid');
-            ['V1','V2','V3','V4','B1','B2','D1','D2'].forEach(id => {
-                const btn = document.createElement('div');
-                btn.className = "h-32 bg-slate-900 border-2 border-slate-800 rounded-2xl flex items-center justify-center cursor-pointer hover:border-fuchsia-500 transition-all";
-                btn.innerHTML = `<span class="text-2xl font-bold text-slate-400">${id}</span>`;
-                btn.onclick = () => {
-                    selectedTable = id;
-                    document.getElementById('active-table-title').innerText = `Table: ${id}`;
-                    document.getElementById('cart').innerHTML = "";
-                    cart = [];
-                };
-                grid.appendChild(btn);
+        let currentTable = null; let cart = [];
+        window.onload = () => showPinPad(() => {
+            const floor = document.getElementById('floor');
+            ['V1','V2','V3','V4','B1','B2','VIP-1','VIP-2'].forEach(id => {
+                const t = document.createElement('div');
+                t.className = "h-32 bg-slate-800 border-2 border-slate-700 rounded-2xl flex items-center justify-center cursor-pointer hover:border-fuchsia-500 font-bold text-xl";
+                t.innerText = id;
+                t.onclick = () => { currentTable = id; document.getElementById('table-id').innerText = "Table: " + id; };
+                floor.appendChild(t);
             });
+        });
+
+        function add(n, p) {
+            if(!currentTable) return alert("Pick a table!");
+            cart.push({n, p});
+            document.getElementById('cart').innerHTML += `<div class="flex justify-between"><span>${n}</span><span>$${p}</span></div>`;
         }
 
-        function addToCart(item, price) {
-            if(!selectedTable) return;
-            cart.push({item, price});
-            const div = document.createElement('div');
-            div.className = "flex justify-between text-white not-italic";
-            div.innerHTML = `<span>${item}</span><span>$${price}</span>`;
-            document.getElementById('cart').appendChild(div);
-        }
-
-        function sendToBar() {
+        function send() {
             if(!cart.length) return;
-            db.ref('orders').push({
-                table: selectedTable,
-                items: cart.map(c => c.item),
-                status: 'pending',
-                timestamp: Date.now()
-            });
-            alert("Order Dispatched!");
+            db.ref('orders').push({ table: currentTable, items: cart.map(i => i.n), status: 'pending', time: Date.now() });
+            alert("Order Sent!");
             location.reload();
         }
     </script>
