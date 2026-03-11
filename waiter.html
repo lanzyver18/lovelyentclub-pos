@@ -2,76 +2,96 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WAITER TERMINAL - BIR COMPLIANT</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRO POS - BIR COMPLIANT</title>
     <style>
-        :root { --bir-black: #000; --bir-red: #d32f2f; }
-        body { font-family: -apple-system, sans-serif; margin: 0; padding: 20px; background: #fff; }
-        .legal-header { background: var(--bir-black); color: #fff; padding: 12px; text-align: center; font-size: 11px; margin-bottom: 10px; line-height: 1.4; }
-        .receipt-warning { color: var(--bir-red); border: 2px solid var(--bir-red); padding: 8px; text-align: center; font-weight: 800; font-size: 12px; margin-bottom: 15px; }
-        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .btn { padding: 20px; border: 2px solid #000; font-weight: bold; background: #fff; cursor: pointer; }
-        .btn-send { background: #000; color: #fff; grid-column: span 2; margin-top: 15px; }
+        body { font-family: system-ui; margin: 0; display: flex; flex-direction: column; height: 100vh; }
+        .bir-header { background: #000; color: #fff; padding: 10px; text-align: center; font-size: 11px; }
+        .warning { color: red; font-weight: 800; text-align: center; border: 2px solid red; padding: 5px; margin: 10px; }
+        .pos-grid { display: grid; grid-template-columns: 1fr 350px; flex-grow: 1; }
+        .menu { padding: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .cart { background: #f4f4f4; padding: 20px; border-left: 2px solid #000; display: flex; flex-direction: column; }
+        .btn { padding: 20px; font-weight: bold; border: 2px solid #000; cursor: pointer; background: #fff; }
+        .btn-order { background: #000; color: #fff; padding: 25px; margin-top: auto; }
     </style>
 </head>
 <body>
-    <div class="legal-header">
-        <strong>LOVELY ENT CLUB</strong><br>
-        TIN: 123-456-789-000 | VAT REGISTERED<br>
-        SYSTEM ID: LOVELY-KDM-2026 | PTU: PENDING
+    <div class="bir-header">
+        <strong>LOVELY ENT CLUB</strong> | TIN: 123-456-789-000 | VAT REG | PTU: PENDING-2026
+    </div>
+    <div class="warning">*** THIS IS NOT AN OFFICIAL RECEIPT ***</div>
+
+    <div class="pos-grid">
+        <div class="menu" id="menuGrid"></div>
+        <div class="cart">
+            <h3>CURRENT ORDER</h3>
+            <div id="cartItems" style="flex-grow:1"></div>
+            <div id="totalDisplay" style="font-size: 1.5rem; font-weight: 900; margin-bottom: 10px;">TOTAL: ₱0</div>
+            <button class="btn btn-order" onclick="submitToKitchen()">FINALIZE & SEND</button>
+        </div>
     </div>
 
-    <div class="receipt-warning">*** THIS IS NOT AN OFFICIAL RECEIPT ***</div>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+    import { getDatabase, ref, runTransaction, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
 
-    <div class="menu-grid">
-        <button class="btn" onclick="addItem('Burger', 280)">Burger (₱280)</button>
-        <button class="btn" onclick="addItem('Beer', 120)">Beer (₱120)</button>
-        <button class="btn btn-send" onclick="submitOrder()">SUBMIT TO KITCHEN</button>
-    </div>
+    const config = { databaseURL: "https://pos-lovelyentclub-default-rtdb.firebaseio.com" };
+    const app = initializeApp(config);
+    const db = getDatabase(app);
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getDatabase, ref, runTransaction, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
+    const MENU = { "Burger": 280, "Pizza": 450, "Beer": 120, "Soda": 80 };
+    let cart = [];
 
-        const firebaseConfig = { apiKey: "AIzaSyB1BND4Pd7vpd_8LJW1IwZB36-4uFdO6R4", authDomain: "pos-lovelyentclub.firebaseapp.com", databaseURL: "https://pos-lovelyentclub-default-rtdb.firebaseio.com", projectId: "pos-lovelyentclub" };
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+    // Initialize Menu UI
+    const grid = document.getElementById('menuGrid');
+    Object.entries(MENU).forEach(([name, price]) => {
+        grid.innerHTML += `<button class="btn" onclick="addToCart('${name}', ${price})">${name}<br>₱${price}</button>`;
+    });
 
-        let cart = [];
-        window.addItem = (name, price) => { cart.push({ name, price }); alert(name + " added"); };
+    window.addToCart = (name, price) => {
+        cart.push({ name, price });
+        updateUI();
+    };
 
-        window.submitOrder = async () => {
-            if (cart.length === 0) return alert("Cart empty");
-            const systemRef = ref(db, 'system_controls');
+    function updateUI() {
+        const list = document.getElementById('cartItems');
+        const total = cart.reduce((sum, item) => sum + item.price, 0);
+        list.innerHTML = cart.map(i => `<div>${i.name} - ₱${i.price}</div>`).join('');
+        document.getElementById('totalDisplay').innerText = `TOTAL: ₱${total.toLocaleString()}`;
+    }
 
-            // MANDATORY: Atomic Transaction for Sequence and Total
-            await runTransaction(systemRef, (current) => {
-                const orderTotal = cart.reduce((sum, item) => sum + item.price, 0);
-                if (!current) return { lastSI: 1, accumulatedGrandTotal: orderTotal };
-                return {
-                    lastSI: (current.lastSI || 0) + 1,
-                    accumulatedGrandTotal: (current.accumulatedGrandTotal || 0) + orderTotal
-                };
-            }).then((result) => {
-                const meta = result.snapshot.val();
-                const siNumber = `SI-${String(meta.lastSI).padStart(6, '0')}`;
-                
-                const finalOrder = {
-                    siNumber,
-                    items: cart.map(i => i.name),
-                    totalValue: cart.reduce((sum, item) => sum + item.price, 0),
-                    vatAmount: cart.reduce((sum, item) => sum + item.price, 0) * 0.12, // PH VAT
-                    timestamp: serverTimestamp(),
-                    status: "PENDING",
-                    nonResettableTotal: meta.accumulatedGrandTotal
-                };
+    window.submitToKitchen = async () => {
+        if (cart.length === 0) return;
+        const systemRef = ref(db, 'system_controls');
 
-                push(ref(db, 'orders'), finalOrder);
-                push(ref(db, 'audit_trail'), { action: "ORDER_CREATED", si: siNumber, time: serverTimestamp() });
-                cart = [];
-                alert("Order " + siNumber + " Sent!");
-            });
-        };
-    </script>
+        // BIR MANDATORY: Non-Volatile Sequential SI & Grand Total
+        await runTransaction(systemRef, (current) => {
+            const total = cart.reduce((sum, item) => sum + item.price, 0);
+            if (!current) return { lastSI: 1, accumulatedGrandTotal: total };
+            return {
+                lastSI: (current.lastSI || 0) + 1,
+                accumulatedGrandTotal: (current.accumulatedGrandTotal || 0) + total
+            };
+        }).then((result) => {
+            const meta = result.snapshot.val();
+            const siNumber = `SI-${String(meta.lastSI).padStart(6, '0')}`;
+            
+            const order = {
+                siNumber,
+                items: cart.map(i => i.name),
+                totalValue: cart.reduce((sum, item) => sum + item.price, 0),
+                vatAmount: cart.reduce((sum, item) => sum + item.price, 0) * 0.12,
+                timestamp: serverTimestamp(),
+                status: "PENDING",
+                nonResettableTotal: meta.accumulatedGrandTotal
+            };
+
+            push(ref(db, 'orders'), order);
+            push(ref(db, 'audit_trail'), { action: "ORDER_CREATED", si: siNumber, time: serverTimestamp() });
+            cart = []; updateUI();
+            alert("Order " + siNumber + " Sent to Kitchen!");
+        });
+    };
+</script>
 </body>
 </html>
