@@ -2,111 +2,66 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SERVER | PICKUP & DELIVERY</title>
+    <title>SERVER PICKUP</title>
     <style>
-        :root { --bg: #f2f2f7; --card: #ffffff; --accent: #007aff; --text: #1c1c1e; --success: #34c759; }
-        body { font-family: -apple-system, system-ui; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; height: 100vh; }
-        
-        header { background: #000; color: #fff; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .badge { background: var(--success); color: #fff; padding: 5px 12px; border-radius: 20px; font-weight: 900; font-size: 0.8rem; }
-
-        .delivery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; padding: 20px; overflow-y: auto; flex-grow: 1; }
-        
-        .delivery-card { background: var(--card); border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); padding: 20px; border: 1px solid #e5e5ea; display: flex; flex-direction: column; }
-        .card-header { border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: baseline; }
+        :root { --accent: #5856d6; --bg: #f2f2f7; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        header { background: #000; color: #fff; padding: 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
+        .card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-left: 8px solid var(--accent); }
         .table-no { font-size: 2rem; font-weight: 900; color: var(--accent); }
-        .si-ref { font-family: monospace; font-size: 0.9rem; color: #8e8e93; }
-
-        .items-list { flex-grow: 1; font-size: 1.1rem; color: #3a3a3c; font-weight: 500; margin-bottom: 15px; }
-        
-        .btn-deliver { width: 100%; padding: 18px; background: #000; color: #fff; border: none; border-radius: 12px; font-weight: 800; font-size: 1.1rem; cursor: pointer; transition: background 0.2s; }
-        .btn-deliver:active { background: var(--accent); }
-        
-        .empty-state { grid-column: 1 / -1; text-align: center; padding: 100px; color: #8e8e93; font-weight: 600; font-size: 1.2rem; }
+        .btn-deliver { width: 100%; margin-top: 15px; padding: 15px; background: #000; color: #fff; border: none; border-radius: 10px; font-weight: 800; cursor: pointer; }
     </style>
 </head>
 <body>
-    <header>
-        <div style="font-weight: 900; font-size: 1.3rem;">PICKUP STATION</div>
-        <div class="badge">SECURE ARCHIVING ACTIVE</div>
-    </header>
-
-    <div class="delivery-grid" id="deliveryGrid">
-        <div class="empty-state">NO ORDERS READY FOR PICKUP</div>
-    </div>
+    <header><strong>READY FOR TABLE</strong><div id="time">00:00</div></header>
+    <div class="grid" id="deliveryGrid"></div>
 
 <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-auth.js";
-    import { getDatabase, ref, onValue, push, remove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, onValue, push, remove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    const config = { apiKey: "AIzaSyB1BND4Pd7vpd_8LJW1IwZB36-4uFdO6R4", authDomain: "pos-lovelyentclub.firebaseapp.com", databaseURL: "https://pos-lovelyentclub-default-rtdb.firebaseio.com", projectId: "pos-lovelyentclub" };
-    const app = initializeApp(config); const auth = getAuth(app); const db = getDatabase(app);
+    const firebaseConfig = {
+        apiKey: "AIzaSyBY1ctdRkTUktpt-uYhRqFxF37jkylxsGs",
+        authDomain: "lovelyentclub-pos.firebaseapp.com",
+        projectId: "lovelyentclub-pos",
+        databaseURL: "https://lovelyentclub-pos-default-rtdb.firebaseio.com"
+    };
 
-    signInAnonymously(auth);
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
     onValue(ref(db, 'orders'), (snap) => {
         const grid = document.getElementById('deliveryGrid');
         grid.innerHTML = '';
         const data = snap.val();
-        let readyCount = 0;
+        if(!data) return;
 
-        if (data) {
-            Object.entries(data).forEach(([id, order]) => {
-                if (order.status === "READY") {
-                    readyCount++;
-                    const card = document.createElement('div');
-                    card.className = 'delivery-card';
-                    card.innerHTML = `
-                        <div class="card-header">
-                            <span class="table-no">${order.table}</span>
-                            <span class="si-ref">${order.siNumber}</span>
-                        </div>
-                        <div class="items-list">
-                            ${order.details.map(i => `• ${i.qty}x ${i.name}`).join('<br>')}
-                        </div>
-                        <button class="btn-deliver" onclick="markDelivered('${id}')">MARK AS DELIVERED</button>
-                    `;
-                    grid.appendChild(card);
-                }
-            });
-        }
-
-        if (readyCount === 0) {
-            grid.innerHTML = '<div class="empty-state">NO ORDERS READY FOR PICKUP</div>';
-        }
+        Object.entries(data).forEach(([id, order]) => {
+            if(order.status === "READY") {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `<div class="table-no">${order.table}</div>
+                                 <div style="color:#888; font-family:monospace;">${order.siNumber}</div>
+                                 <div style="margin:10px 0;">${order.details.map(i => `• ${i.qty}x ${i.name}`).join('<br>')}</div>
+                                 <button class="btn-deliver" onclick="deliver('${id}')">MARK DELIVERED</button>`;
+                grid.appendChild(card);
+            }
+        });
     });
 
-    window.markDelivered = (id) => {
-        const orderRef = ref(db, `orders/${id}`);
-        
-        // 1. Fetch data one last time to archive it
-        onValue(orderRef, (snap) => {
+    window.deliver = (id) => {
+        onValue(ref(db, `orders/${id}`), (snap) => {
             const data = snap.val();
-            if (!data) return;
-
-            // 2. Move to History (Permanent Retention)
-            const historyRef = ref(db, 'history');
-            push(historyRef, {
-                ...data,
-                status: "CLOSED",
-                deliveredAt: serverTimestamp()
-            }).then(() => {
-                // 3. Remove from Active Orders only after successful archive
-                remove(orderRef);
-                
-                // 4. Log to Audit Trail
-                push(ref(db, 'audit_trail'), {
-                    action: "DELIVERED",
-                    si: data.siNumber,
-                    table: data.table,
-                    time: serverTimestamp(),
-                    user: auth.currentUser.uid
+            if(data) {
+                // Archive to history for 10-year retention rule
+                push(ref(db, 'history'), { ...data, deliveredAt: serverTimestamp() }).then(() => {
+                    remove(ref(db, `orders/${id}`));
                 });
-            });
+            }
         }, { onlyOnce: true });
     };
+    setInterval(() => { document.getElementById('time').innerText = new Date().toLocaleTimeString(); }, 1000);
 </script>
 </body>
 </html>
