@@ -6,62 +6,36 @@
     <title>Executive ERP</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --apple-blue: #007AFF; --apple-gray: #8E8E93; --apple-bg: #F5F5F7;
-            --apple-card: rgba(255, 255, 255, 0.8); --glass: blur(25px) saturate(180%);
-            --success: #34C759; --danger: #FF3B30;
-        }
+        :root { --apple-blue: #007AFF; --apple-gray: #8E8E93; --apple-bg: #F5F5F7; --apple-card: rgba(255, 255, 255, 0.8); --glass: blur(25px) saturate(180%); --success: #34C759; --danger: #FF3B30; }
         * { box-sizing: border-box; -webkit-font-smoothing: antialiased; font-family: 'Inter', sans-serif; letter-spacing: -0.022em; }
         body { background-color: var(--apple-bg); margin: 0; display: flex; height: 100vh; overflow: hidden; color: #1D1D1F; }
-
-        /* Sidebar */
         .sidebar { width: 260px; background: var(--sidebar-bg); backdrop-filter: var(--glass); border-right: 0.5px solid rgba(0,0,0,0.1); display: flex; flex-direction: column; padding: 20px 12px; }
         .sidebar-header { padding: 20px 15px; font-weight: 700; font-size: 1.3rem; color: #000; }
         .nav-item { padding: 10px 15px; cursor: pointer; font-size: 0.95rem; font-weight: 500; color: #424245; border-radius: 10px; margin-bottom: 2px; display: flex; align-items: center; transition: 0.2s; }
-        .nav-item i { margin-right: 12px; font-style: normal; font-size: 1.1rem; }
         .nav-item.active { background: var(--apple-blue); color: #fff; }
-
-        /* Main View */
         .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         .top-nav { height: 75px; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; }
         .content-scroll { flex: 1; overflow-y: auto; padding: 0 40px 40px; }
-
-        /* Metrics & Feed Layout */
         .dashboard-layout { display: grid; grid-template-columns: 1fr 350px; gap: 30px; }
         .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
         .card { background: var(--apple-card); backdrop-filter: var(--glass); border-radius: 20px; padding: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.05); border: 0.5px solid rgba(255,255,255,0.3); }
-        .card h3 { margin: 0; font-size: 0.75rem; font-weight: 600; color: var(--apple-gray); text-transform: uppercase; }
-        .card .val { font-size: 2.2rem; font-weight: 700; margin: 8px 0; letter-spacing: -0.04em; }
-
-        /* Activity Feed */
         .feed-card { height: calc(100vh - 180px); display: flex; flex-direction: column; }
         .feed-container { flex: 1; overflow-y: auto; margin-top: 15px; }
-        .feed-item { padding: 12px 0; border-bottom: 0.5px solid rgba(0,0,0,0.05); animation: slideIn 0.3s ease; }
-        .feed-item:last-child { border-bottom: none; }
-        .feed-time { font-size: 0.7rem; color: var(--apple-gray); font-weight: 600; text-transform: uppercase; }
-        .feed-text { font-size: 0.85rem; margin-top: 3px; font-weight: 500; }
-        @keyframes slideIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
-
-        /* Tables */
+        .feed-item { padding: 12px 0; border-bottom: 0.5px solid rgba(0,0,0,0.05); }
         .table-container { background: var(--apple-card); backdrop-filter: var(--glass); border-radius: 20px; overflow: hidden; border: 0.5px solid rgba(255,255,255,0.3); }
         .data-table { width: 100%; border-collapse: collapse; }
         .data-table th { text-align: left; padding: 16px 24px; font-size: 0.75rem; font-weight: 600; color: var(--apple-gray); border-bottom: 0.5px solid rgba(0,0,0,0.05); }
         .data-table td { padding: 16px 24px; border-bottom: 0.5px solid rgba(0,0,0,0.05); font-size: 0.95rem; }
-
-        /* Stepper Modal */
         #stepper-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.1); backdrop-filter: blur(15px); display: none; align-items: center; justify-content: center; z-index: 10001; }
         .stepper-box { background: rgba(255,255,255,0.9); width: 320px; border-radius: 30px; padding: 30px; text-align: center; }
         .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
         .num-key { background: #fff; height: 60px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; font-weight: 500; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
+        .tab-content { display: none; } .tab-content.active { display: block; }
         .btn { background: var(--apple-blue); color: #fff; border: none; padding: 8px 16px; border-radius: 12px; font-weight: 600; cursor: pointer; }
         #login-overlay { position: fixed; inset: 0; background: #FFF; display: flex; align-items: center; justify-content: center; z-index: 10000; }
     </style>
 </head>
 <body>
-
     <div id="login-overlay">
         <div style="width: 340px; text-align: center;">
             <h1 style="font-size: 2.2rem; font-weight: 700; margin-bottom: 40px;">Lovely ENT</h1>
@@ -96,11 +70,7 @@
     </div>
 
     <div class="main">
-        <div class="top-nav">
-            <h2 id="tab-title">Dashboard</h2>
-            <div id="clock" style="color:var(--apple-gray); font-weight:500;"></div>
-        </div>
-
+        <div class="top-nav"><h2 id="tab-title">Dashboard</h2><div id="clock"></div></div>
         <div class="content-scroll">
             <div id="dashboard" class="tab-content active">
                 <div class="dashboard-layout">
@@ -110,50 +80,23 @@
                             <div class="card"><h3>Active Tables</h3><span id="active-tables" class="val">0</span></div>
                         </div>
                         <div class="table-container">
-                            <table class="data-table">
-                                <thead><tr><th>Item</th><th>Stock</th><th>Status</th></tr></thead>
-                                <tbody id="stock-summary"></tbody>
-                            </table>
+                            <table class="data-table"><thead><tr><th>Item</th><th>Stock</th><th>Status</th></tr></thead><tbody id="stock-summary"></tbody></table>
                         </div>
                     </div>
                     <div class="card feed-card">
                         <h3>Live Activity</h3>
-                        <div class="feed-container" id="activity-feed">
-                            <div class="feed-item"><div class="feed-time">NOW</div><div class="feed-text">Monitoring cloud channels...</div></div>
-                        </div>
+                        <div class="feed-container" id="activity-feed"></div>
                     </div>
                 </div>
             </div>
-
-            <div id="reports" class="tab-content">
-                <div class="table-container">
-                    <table class="data-table">
-                        <thead><tr><th>SI #</th><th>Table</th><th>Amount</th><th>Status</th><th>Control</th></tr></thead>
-                        <tbody id="histBody"></tbody>
-                    </table>
-                </div>
-            </div>
-
+            <div id="reports" class="tab-content"><div class="table-container"><table class="data-table"><thead><tr><th>SI #</th><th>Table</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead><tbody id="histBody"></tbody></table></div></div>
             <div id="inventory" class="tab-content">
-                <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
-                    <h3>Stock Control</h3>
-                    <button class="btn" onclick="addNewProduct()">+ New SKU</button>
-                </div>
-                <div class="table-container">
-                    <table class="data-table">
-                        <thead><tr><th>Item</th><th>Quantity</th><th>Update</th></tr></thead>
-                        <tbody id="stockBody"></tbody>
-                    </table>
-                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:20px;"><h3>Stock Control</h3><button class="btn" onclick="addNewProduct()">+ New SKU</button></div>
+                <div class="table-container"><table class="data-table"><thead><tr><th>Item</th><th>Quantity</th><th>Update</th></tr></thead><tbody id="stockBody"></tbody></table></div>
             </div>
-
-            <div id="customers" class="tab-content">
-                <h3>Member CRM</h3>
-                <div class="table-container"><table class="data-table"><thead><tr><th>Name</th><th>Tier</th><th>Total Spend</th></tr></thead><tbody id="memberBody"></tbody></table></div>
-            </div>
-
+            <div id="customers" class="tab-content"><h3>Member CRM</h3><div class="table-container"><table class="data-table"><thead><tr><th>Name</th><th>Tier</th><th>Spend</th></tr></thead><tbody id="memberBody"></tbody></table></div></div>
             <div id="employees" class="tab-content">
-                <h3>Workforce</h3>
+                <div style="display:flex; justify-content:space-between; margin-bottom:20px;"><h3>Staff</h3><button class="btn" onclick="addEmp()">+ Hire Staff</button></div>
                 <div class="table-container"><table class="data-table"><thead><tr><th>Name</th><th>Station</th><th>PIN</th></tr></thead><tbody id="empBody"></tbody></table></div>
             </div>
         </div>
@@ -190,21 +133,13 @@
 
     function init() {
         onValue(ref(db, 'system_controls'), s => { if(s.val()) document.getElementById('gross').innerText = "₱" + s.val().accumulatedGrandTotal.toLocaleString(); });
-        onValue(ref(db, 'orders'), s => { 
-            const count = s.val() ? Object.keys(s.val()).length : 0;
-            document.getElementById('active-tables').innerText = count;
-            if(count > 0) addFeed(`New order incoming from table.`);
-        });
-        
+        onValue(ref(db, 'orders'), s => { document.getElementById('active-tables').innerText = s.val() ? Object.keys(s.val()).length : 0; });
         onValue(ref(db, 'history'), s => {
             const h = document.getElementById('histBody'); h.innerHTML = ''; if(!s.val()) return;
-            const entries = Object.entries(s.val()).reverse();
-            addFeed(`Transaction recorded: ${entries[0][1].siNumber}`);
-            entries.forEach(([id, o]) => {
-                h.innerHTML += `<tr><td>${o.siNumber}</td><td>${o.table}</td><td>₱${o.totalValue.toLocaleString()}</td><td><span style="color:var(--success)">Paid</span></td><td><button onclick="vOrder('${id}')" style="color:var(--danger); border:none; background:none; cursor:pointer;">Void</button></td></tr>`;
+            Object.entries(s.val()).reverse().forEach(([id, o]) => {
+                h.innerHTML += `<tr><td>${o.siNumber}</td><td>${o.table}</td><td>₱${o.totalValue.toLocaleString()}</td><td>Paid</td><td><button onclick="vOrder('${id}')" style="color:var(--danger); border:none; background:none;">Void</button></td></tr>`;
             });
         });
-
         onValue(ref(db, 'inventory'), s => {
             const b = document.getElementById('stockBody'); const sum = document.getElementById('stock-summary');
             b.innerHTML = ''; sum.innerHTML = ''; if(!s.val()) return;
@@ -212,17 +147,8 @@
                 const row = `<tr><td><b>${name}</b></td><td>${data.qty}</td><td>${data.qty < 10 ? '<span style="color:red">LOW</span>' : 'OK'}</td></tr>`;
                 b.innerHTML += `<tr><td><b>${name}</b></td><td>${data.qty}</td><td><button class="btn" onclick="openStepper('${name}', 'inventory')">Add</button></td></tr>`;
                 sum.innerHTML += row;
-                if(data.qty < 10) addFeed(`Stock Alert: ${name} is running low (${data.qty})`);
             });
         });
-
-        onValue(ref(db, 'members'), s => {
-            const b = document.getElementById('memberBody'); b.innerHTML = ''; if(!s.val()) return;
-            Object.entries(s.val()).forEach(([id, m]) => {
-                b.innerHTML += `<tr><td>${m.name}</td><td>${m.tier}</td><td>₱${(m.spend || 0).toLocaleString()}</td></tr>`;
-            });
-        });
-
         onValue(ref(db, 'employees'), s => {
             const b = document.getElementById('empBody'); b.innerHTML = ''; if(!s.val()) return;
             Object.entries(s.val()).forEach(([id, e]) => {
@@ -241,13 +167,12 @@
                 onValue(ref(db, `inventory/${activeId}/qty`), s => { update(ref(db, `inventory/${activeId}`), { qty: (s.val() || 0) + parseInt(stepVal || 0) }); }, {onlyOnce:true});
             } else { update(ref(db, `employees/${activeId}`), { pin: stepVal }); }
             closeStepper();
-            addFeed(`Update successful: ${activeId}`);
         } else stepVal += n;
         document.getElementById('stepper-val').innerText = stepVal || "0";
     };
-
-    window.addNewProduct = () => { const n = prompt("Item Name:"); if(n) set(ref(db, `inventory/${n}`), {qty:0, category:"Bar"}); };
-    window.vOrder = (id) => { if(confirm("Void Transaction?")) onValue(ref(db,`history/${id}`), s => { push(ref(db,'voided_history'), {...s.val(), voidedAt: serverTimestamp()}).then(()=>remove(ref(db,`history/${id}`))); }, {onlyOnce:true}); };
+    window.addEmp = () => { const n = prompt("Name:"); const s = prompt("Station:"); if(n) push(ref(db, 'employees'), {name:n, station:s, pin:"0000"}); };
+    window.addNewProduct = () => { const n = prompt("Item Name:"); if(n) set(ref(db, `inventory/${n}`), {qty:0, category:"Food"}); };
+    window.vOrder = (id) => { if(confirm("Void?")) remove(ref(db,`history/${id}`)); };
     setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString(); }, 1000);
 </script>
 </body>
