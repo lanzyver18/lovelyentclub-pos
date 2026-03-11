@@ -6,252 +6,99 @@
     <title>POS | SECURE TERMINAL</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --brand: #007AFF; --dark: #111113; --bg: #F8F9FA;
-            --success: #28CD41; --danger: #FF3B30; --border: #E9ECEF;
-        }
+        :root { --brand: #007AFF; --dark: #111113; --bg: #F8F9FA; --success: #28CD41; --danger: #FF3B30; --border: #E9ECEF; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: 'Inter', sans-serif; }
         body { background: var(--bg); margin: 0; display: flex; height: 100vh; overflow: hidden; }
-
-        /* Security Overlay */
-        #lock-screen { 
-            position: fixed; inset: 0; background: var(--dark); 
-            display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            z-index: 2000; transition: 0.5s ease;
-        }
-        .pin-container { width: 320px; text-align: center; }
-        .pin-dots { display: flex; justify-content: center; gap: 15px; margin-bottom: 30px; }
-        .dot { width: 15px; height: 15px; border-radius: 50%; border: 2px solid #333; transition: 0.2s; }
+        #lock-screen { position: fixed; inset: 0; background: var(--dark); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2000; }
+        .pin-dots { display: flex; justify-content: center; gap: 15px; margin-bottom: 40px; }
+        .dot { width: 15px; height: 15px; border-radius: 50%; border: 2px solid #333; }
         .dot.filled { background: var(--brand); border-color: var(--brand); box-shadow: 0 0 10px var(--brand); }
-        
         .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
-        .key { 
-            background: rgba(255,255,255,0.05); color: #fff; height: 75px; 
-            border-radius: 50%; display: flex; align-items: center; justify-content: center; 
-            font-size: 1.5rem; font-weight: 600; cursor: pointer; transition: 0.1s;
-        }
-        .key:active { background: var(--brand); transform: scale(0.9); }
-
-        /* Main Workspace */
+        .key { background: rgba(255,255,255,0.05); color: #fff; height: 75px; width: 75px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 600; cursor: pointer; }
         .sidebar { width: 85px; background: var(--dark); display: flex; flex-direction: column; align-items: center; padding-top: 20px; }
-        .t-btn { 
-            width: 60px; height: 60px; background: #222; color: #fff; margin-bottom: 12px; 
-            border-radius: 16px; display: flex; align-items: center; justify-content: center; 
-            font-weight: 800; cursor: pointer; font-size: 0.9rem;
-        }
-        .t-btn.active { background: var(--brand); box-shadow: 0 4px 15px rgba(0,122,255,0.4); }
-
+        .t-btn { width: 60px; height: 60px; background: #222; color: #fff; margin-bottom: 12px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-weight: 800; cursor: pointer; }
+        .t-btn.active { background: var(--brand); }
         .main { flex: 1; display: flex; flex-direction: column; background: #fff; }
-        .header { height: 70px; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 25px; justify-content: space-between; }
         .menu-grid { flex: 1; overflow-y: auto; padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
-        
-        .item-card { 
-            background: #fff; border: 1px solid var(--border); border-radius: 20px; padding: 20px; 
-            text-align: center; cursor: pointer; transition: 0.2s;
-        }
-        .item-card:active { transform: scale(0.95); border-color: var(--brand); }
-        .item-card.out { opacity: 0.4; pointer-events: none; background: #f0f0f0; }
-
-        /* Cart Area */
-        .cart { width: 360px; border-left: 1px solid var(--border); display: flex; flex-direction: column; background: #FDFDFD; }
+        .item-card { border: 1px solid var(--border); border-radius: 20px; padding: 20px; text-align: center; cursor: pointer; }
+        .cart { width: 360px; border-left: 1px solid var(--border); display: flex; flex-direction: column; }
         .cart-items { flex: 1; overflow-y: auto; padding: 20px; }
-        .cart-footer { padding: 25px; border-top: 1px solid var(--border); background: #fff; }
-        .btn-send { 
-            width: 100%; padding: 20px; background: var(--dark); color: #fff; 
-            border: none; border-radius: 18px; font-weight: 700; font-size: 1rem; cursor: pointer;
-        }
-
-        #status { font-size: 0.7rem; font-weight: 800; padding: 4px 12px; border-radius: 10px; color: #fff; }
-        .online { background: var(--success); } .offline { background: var(--danger); }
+        .btn-send { width: 100%; padding: 20px; background: var(--dark); color: #fff; border: none; border-radius: 18px; font-weight: 700; cursor: pointer; }
     </style>
 </head>
 <body>
-
     <div id="lock-screen">
         <div class="pin-container">
-            <h1 style="color:#fff; margin-bottom:10px; letter-spacing:-1px;">Lovely ENT</h1>
-            <p style="color:#666; margin-bottom:40px;">Enter Staff PIN</p>
-            <div class="pin-dots">
-                <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
-            </div>
+            <h1 style="color:#fff; text-align:center; margin-bottom:40px;">Staff Login</h1>
+            <div class="pin-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
             <div class="keypad">
                 <div class="key" onclick="press(1)">1</div><div class="key" onclick="press(2)">2</div><div class="key" onclick="press(3)">3</div>
                 <div class="key" onclick="press(4)">4</div><div class="key" onclick="press(5)">5</div><div class="key" onclick="press(6)">6</div>
                 <div class="key" onclick="press(7)">7</div><div class="key" onclick="press(8)">8</div><div class="key" onclick="press(9)">9</div>
-                <div class="key" style="font-size:0.8rem;" onclick="clr()">CLR</div><div class="key" onclick="press(0)">0</div><div class="key" style="font-size:0.8rem;" onclick="logout()">OFF</div>
+                <div class="key" onclick="clr()">C</div><div class="key" onclick="press(0)">0</div><div class="key" onclick="logout()">OFF</div>
             </div>
         </div>
     </div>
-
     <div class="sidebar" id="table-list"></div>
-
     <div class="main">
-        <div class="header">
-            <div id="user-info" style="font-weight:700; color:var(--dark);">SELECT STAFF</div>
-            <div id="status" class="offline">SYNCING</div>
-        </div>
+        <div style="padding:20px; border-bottom:1px solid #eee; font-weight:bold;" id="user-info">SELECT STAFF</div>
         <div class="menu-grid" id="menu-grid"></div>
     </div>
-
     <div class="cart">
-        <div style="padding:20px; font-weight:800; font-size:1.2rem; border-bottom:1px solid var(--border);" id="active-table">NO TABLE</div>
+        <div style="padding:20px; font-weight:800;" id="active-table">NO TABLE</div>
         <div class="cart-items" id="cart-list"></div>
-        <div class="cart-footer">
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px; color:#888;">
-                <span>Total Amount</span><span id="cart-total">₱0.00</span>
-            </div>
+        <div style="padding:20px; border-top:1px solid #eee;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span>Total</span><span id="cart-total">₱0.00</span></div>
             <button class="btn-send" onclick="sendToKitchen()">SEND TO KITCHEN</button>
         </div>
     </div>
-
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getDatabase, ref, onValue, push, runTransaction, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    const config = { 
-        apiKey: "AIzaSyBY1ctdRkTUktpt-uYhRqFxF37jkylxsGs", 
-        authDomain: "lovelyentclub-pos.firebaseapp.com", 
-        projectId: "lovelyentclub-pos", 
-        databaseURL: "https://lovelyentclub-pos-default-rtdb.firebaseio.com" 
-    };
-
-    const app = initializeApp(config);
-    const db = getDatabase(app);
-    const auth = getAuth(app);
+    const config = { apiKey: "AIzaSyBY1ctdRkTUktpt-uYhRqFxF37jkylxsGs", authDomain: "lovelyentclub-pos.firebaseapp.com", projectId: "lovelyentclub-pos", databaseURL: "https://lovelyentclub-pos-default-rtdb.firebaseio.com" };
+    const app = initializeApp(config); const db = getDatabase(app); const auth = getAuth(app);
     signInAnonymously(auth);
 
-    let staffDb = {};
-    let activeUser = null;
-    let pinInput = "";
-    let inventory = {};
-    let cart = [];
-    let curTable = "";
+    let staffDb = {}; let activeUser = null; let pinInput = ""; let inventory = {}; let cart = []; let curTable = "";
+    onValue(ref(db, 'employees'), s => staffDb = s.val() || {});
+    onValue(ref(db, 'inventory'), s => { inventory = s.val() || {}; renderMenu(); });
 
-    // 1. PIN SECURE LOGIC
-    onValue(ref(db, 'employees'), s => { staffDb = s.val() || {}; });
-
-    window.press = (n) => {
-        if(pinInput.length < 4) {
-            pinInput += n;
-            updateDots();
-            if(pinInput.length === 4) validatePin();
-        }
-    };
-
-    function updateDots() {
-        const dots = document.querySelectorAll('.dot');
-        dots.forEach((d, i) => d.classList.toggle('filled', i < pinInput.length));
-    }
-
+    window.press = (n) => { if(pinInput.length < 4) { pinInput += n; updateDots(); if(pinInput.length === 4) validatePin(); } };
+    function updateDots() { const dots = document.querySelectorAll('.dot'); dots.forEach((d, i) => d.classList.toggle('filled', i < pinInput.length)); }
     window.clr = () => { pinInput = ""; updateDots(); };
-
     function validatePin() {
         const user = Object.values(staffDb).find(e => e.pin === pinInput);
-        if(user) {
-            activeUser = user;
-            document.getElementById('lock-screen').style.opacity = "0";
-            setTimeout(() => {
-                document.getElementById('lock-screen').style.display = "none";
-                document.getElementById('user-info').innerText = "WAITER: " + user.name.toUpperCase();
-            }, 500);
-        } else {
-            alert("Unauthorized PIN");
-            clr();
-        }
+        if(user) { activeUser = user; document.getElementById('lock-screen').style.display = "none"; document.getElementById('user-info').innerText = "WAITER: " + user.name; } 
+        else { alert("Wrong PIN"); clr(); }
     }
-
-    // 2. ERP SYNC
-    onValue(ref(db, 'inventory'), s => {
-        inventory = s.val() || {};
-        renderMenu();
-    });
-
-    onValue(ref(db, '.info/connected'), s => {
-        const b = document.getElementById('status');
-        b.className = s.val() ? "online" : "offline";
-        b.innerText = s.val() ? "STATION_LINKED" : "OFFLINE";
-    });
-
-    // 3. UI LOGIC
     const tables = ["T1", "T2", "T3", "T4", "V1", "V2"];
     document.getElementById('table-list').innerHTML = tables.map(t => `<div class="t-btn" onclick="setT(this, '${t}')">${t}</div>`).join('');
-
-    window.setT = (el, t) => {
-        document.querySelectorAll('.t-btn').forEach(b => b.classList.remove('active'));
-        el.classList.add('active');
-        curTable = t;
-        document.getElementById('active-table').innerText = "TABLE " + t;
-    };
-
+    window.setT = (el, t) => { document.querySelectorAll('.t-btn').forEach(b => b.classList.remove('active')); el.classList.add('active'); curTable = t; document.getElementById('active-table').innerText = "TABLE " + t; };
     function renderMenu() {
-        const grid = document.getElementById('menu-grid');
-        grid.innerHTML = Object.entries(inventory).map(([name, data]) => `
-            <div class="item-card ${data.qty <= 0 ? 'out' : ''}" onclick="addToCart('${name}', 150, '${data.category}')">
-                <div style="font-weight:700;">${name}</div>
-                <div style="font-size:0.7rem; color:#888;">STOCK: ${data.qty}</div>
-            </div>
-        `).join('');
+        document.getElementById('menu-grid').innerHTML = Object.entries(inventory).map(([n, d]) => `
+            <div class="item-card" onclick="addToCart('${n}', 150, '${d.category}')"><b>${n}</b><br><small>STOCK: ${d.qty}</small></div>`).join('');
     }
-
-    window.addToCart = (n, p, c) => {
-        const mod = prompt("Instructions?", "None");
-        cart.push({ n, p, c, mod: mod || "None" });
-        updateCart();
-    };
-
+    window.addToCart = (n, p, c) => { cart.push({ n, p, c, mod: prompt("Special request?") || "None" }); updateCart(); };
     function updateCart() {
-        const list = document.getElementById('cart-list');
-        list.innerHTML = cart.map((i, idx) => `
-            <div style="display:flex; justify-content:space-between; margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;">
-                <div><b>${i.n}</b><br><small style="color:#888">${i.mod}</small></div>
-                <button onclick="removeItem(${idx})" style="border:none; color:red; background:none; font-weight:800;">✕</button>
-            </div>
-        `).join('');
-        const total = cart.reduce((a, b) => a + b.p, 0);
-        document.getElementById('cart-total').innerText = "₱" + total.toLocaleString();
+        document.getElementById('cart-list').innerHTML = cart.map((i, idx) => `<div style="margin-bottom:10px;">${i.n} <small>(${i.mod})</small></div>`).join('');
+        document.getElementById('cart-total').innerText = "₱" + (cart.reduce((a, b) => a + b.p, 0)).toLocaleString();
     }
-
-    window.removeItem = (idx) => { cart.splice(idx, 1); updateCart(); };
-
     window.sendToKitchen = async () => {
         if(!curTable || cart.length === 0) return alert("Select Table/Items");
-        
         const total = cart.reduce((a, b) => a + b.p, 0);
-
         await runTransaction(ref(db, 'system_controls'), (c) => {
             if(!c) return { lastSI: 1, accumulatedGrandTotal: total };
             return { lastSI: c.lastSI + 1, accumulatedGrandTotal: (c.accumulatedGrandTotal || 0) + total };
         }).then(res => {
             const si = "SI-" + String(res.snapshot.val().lastSI).padStart(6, '0');
-            
-            // Deduct Stock
-            cart.forEach(item => {
-                const newQty = (inventory[item.n]?.qty || 1) - 1;
-                update(ref(db, `inventory/${item.n}`), { qty: Math.max(0, newQty) });
-            });
-
-            // Send Order Tagged with Waiter Name
-            push(ref(db, 'orders'), {
-                siNumber: si,
-                table: curTable,
-                details: cart,
-                totalValue: total,
-                waiter: activeUser.name,
-                status: "PENDING",
-                timestamp: Date.now()
-            });
-
-            alert("ORDER SENT: " + si);
-            cart = [];
-            updateCart();
-            location.reload(); // Re-locks for security
+            cart.forEach(item => { update(ref(db, `inventory/${item.n}`), { qty: Math.max(0, (inventory[item.n]?.qty || 1) - 1) }); });
+            push(ref(db, 'orders'), { siNumber: si, table: curTable, details: cart, totalValue: total, waiter: activeUser.name, status: "PENDING", timestamp: Date.now() });
+            location.reload();
         });
     };
-
     window.logout = () => location.reload();
-
-    setInterval(() => { /* Clock logic if needed */ }, 1000);
 </script>
 </body>
 </html>
