@@ -1,166 +1,106 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>REPORTS | MANAGER DASHBOARD</title>
-    <style>
-        :root { --accent: #007aff; --bg: #f5f5f7; --danger: #ff3b30; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding-bottom: 60px; }
-        .content { padding: 30px; display: none; max-width: 1200px; margin: auto; }
-        .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .card { background: #fff; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-top: 5px solid var(--accent); }
-        .val { font-size: 1.8rem; font-weight: 900; color: #1c1c1e; }
-        .section-box { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 12px; border-bottom: 2px solid #eee; color: #888; font-size: 0.8rem; text-transform: uppercase; }
-        td { padding: 12px; border-bottom: 1px solid #f9f9f9; font-size: 0.95rem; }
-        .btn-action { padding: 10px 20px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .btn-print { background: #000; color: #fff; }
-        .btn-void { background: var(--danger); color: #fff; padding: 5px 10px; font-size: 0.75rem; }
-        #login-overlay { position: fixed; inset: 0; background: #1c1c1e; display: flex; align-items: center; justify-content: center; z-index: 9999; }
-        .login-box { background: #fff; padding: 40px; border-radius: 20px; text-align: center; width: 320px; }
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; }
-        #status-bar { position: fixed; bottom: 0; width: 100%; padding: 8px; text-align: center; font-weight: bold; font-size: 0.75rem; color: #fff; }
-    </style>
+<head><title>REPORTS | MANAGER</title>
+<style>
+    body { font-family: -apple-system, sans-serif; background: #f4f4f9; padding: 20px; margin: 0; }
+    #login { position: fixed; inset: 0; background: #1c1c1e; color: white; display: flex; align-items: center; justify-content: center; z-index: 100; }
+    .card { background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 20px; text-align: center; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; }
+    th { text-align: left; padding: 15px; background: #000; color: #fff; }
+    td { padding: 15px; border-bottom: 1px solid #eee; }
+    .btn-void { background: #ff3b30; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+    @media print { .no-print { display: none; } body { background: white; } .card { box-shadow: none; border: 1px solid #eee; } }
+</style>
 </head>
 <body>
-
-    <div id="login-overlay">
-        <div class="login-box">
-            <h2>MANAGER ACCESS</h2>
-            <input type="email" id="email" placeholder="Email">
-            <input type="password" id="pass" placeholder="Password">
-            <button class="btn-action btn-print" style="width:100%; margin-top:10px;" onclick="managerLogin()">UNLOCK</button>
+    <div id="login" class="no-print">
+        <div style="text-align:center; background:#fff; color:#000; padding:40px; border-radius:20px;">
+            <h2 style="margin-top:0">MANAGER ACCESS</h2>
+            <input type="email" id="email" placeholder="Email" style="padding:10px; width:200px;"><br><br>
+            <input type="password" id="pass" placeholder="Password" style="padding:10px; width:200px;"><br><br>
+            <button onclick="login()" style="padding:10px 40px; background:#000; color:#fff; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">UNLOCK</button>
         </div>
     </div>
 
-    <div class="content" id="dashboard">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-            <h1>LOVELY ENT | ANALYTICS</h1>
-            <div>
-                <button class="btn-action btn-print" onclick="window.print()">PRINT REPORT</button>
-                <button class="btn-action btn-logout" onclick="logout()">LOGOUT</button>
+    <div id="content" style="display:none">
+        <div class="no-print" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h1>Lovely ENT | Sales Report</h1>
+            <button onclick="window.print()" style="padding:10px 20px; cursor:pointer; font-weight:bold;">PRINT TO PDF / THERMAL</button>
+        </div>
+        
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+            <div class="card">
+                <h1 id="gross" style="margin:0; font-size:2.5rem; color:#007aff;">₱0</h1>
+                <small>NON-RESETTABLE GRAND TOTAL</small>
+            </div>
+            <div class="card">
+                <h1 id="txn" style="margin:0; font-size:2.5rem;">0</h1>
+                <small>TOTAL SUCCESSFUL SALES</small>
             </div>
         </div>
 
-        <div class="metrics">
-            <div class="card"><span id="gross" class="val">₱0</span>NON-RESETTABLE TOTAL</div>
-            <div class="card"><span id="vat" class="val">₱0</span>12% VAT</div>
-            <div class="card"><span id="net" class="val">₱0</span>NET SALES</div>
-            <div class="card"><span id="count" class="val">0</span>TXN COUNT</div>
-        </div>
-
-        <div class="section-box">
-            <h3>TRANSACTION LOG (MANAGEMENT OVERRIDE)</h3>
-            <table>
-                <thead><tr><th>SI #</th><th>TABLE</th><th>TOTAL</th><th>ACTION</th></tr></thead>
-                <tbody id="histBody"></tbody>
-            </table>
-        </div>
+        <h3>TRANSACTION HISTORY</h3>
+        <table>
+            <thead><tr><th>SI #</th><th>TABLE</th><th>TOTAL</th><th class="no-print">ACTION</th></tr></thead>
+            <tbody id="hist"></tbody>
+        </table>
     </div>
-
-    <div id="status-bar" style="background:#888;">SYNCING...</div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getDatabase, ref, onValue, push, remove, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getDatabase, ref, onValue, remove, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    const config = {
-        apiKey: "AIzaSyBY1ctdRkTUktpt-uYhRqFxF37jkylxsGs",
-        authDomain: "lovelyentclub-pos.firebaseapp.com",
-        projectId: "lovelyentclub-pos",
-        databaseURL: "https://lovelyentclub-pos-default-rtdb.firebaseio.com"
-    };
+    const config = { apiKey: "AIzaSyBY1ctdRkTUktpt-uYhRqFxF37jkylxsGs", authDomain: "lovelyentclub-pos.firebaseapp.com", projectId: "lovelyentclub-pos", databaseURL: "https://lovelyentclub-pos-default-rtdb.firebaseio.com" };
+    const app = initializeApp(config); const db = getDatabase(app); const auth = getAuth(app);
 
-    const app = initializeApp(config);
-    const db = getDatabase(app);
-    const auth = getAuth(app);
+    window.login = () => signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value).catch(e=>alert("Access Denied"));
 
-    window.managerLogin = () => {
-        signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value)
-        .catch(() => alert("Access Denied."));
-    };
-
-    window.logout = () => { signOut(auth).then(() => location.reload()); };
-
-    onAuthStateChanged(auth, (user) => {
-        if (user && !user.isAnonymous) {
-            document.getElementById('login-overlay').style.display = "none";
-            document.getElementById('dashboard').style.display = "block";
+    onAuthStateChanged(auth, (u) => {
+        if(u && !u.isAnonymous) {
+            document.getElementById('login').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
             loadData();
         }
     });
 
     function loadData() {
-        onValue(ref(db, 'system_controls'), (snap) => {
-            const d = snap.val();
-            if (d) {
-                const total = d.accumulatedGrandTotal || 0;
-                document.getElementById('gross').innerText = "₱" + total.toLocaleString();
-                document.getElementById('vat').innerText = "₱" + (total * 0.12).toLocaleString();
-                document.getElementById('net').innerText = "₱" + (total / 1.12).toLocaleString(undefined, {maximumFractionDigits:0});
-            }
+        onValue(ref(db, 'system_controls'), s => {
+            if(s.val()) document.getElementById('gross').innerText = "₱" + s.val().accumulatedGrandTotal.toLocaleString();
         });
-
-        onValue(ref(db, 'history'), (snap) => {
-            const body = document.getElementById('histBody');
-            body.innerHTML = '';
-            const data = snap.val();
-            if (!data) return;
-
-            Object.entries(data).reverse().forEach(([id, o]) => {
-                body.innerHTML += `<tr>
+        onValue(ref(db, 'history'), s => {
+            const h = document.getElementById('hist'); h.innerHTML = '';
+            if(!s.val()) return;
+            const entries = Object.entries(s.val());
+            document.getElementById('txn').innerText = entries.length;
+            entries.reverse().forEach(([id, o]) => {
+                h.innerHTML += `<tr>
                     <td><b>${o.siNumber}</b></td>
                     <td>${o.table}</td>
-                    <td>₱${(o.totalValue || 0).toLocaleString()}</td>
-                    <td><button class="btn-action btn-void" onclick="voidOrder('${id}', '${o.siNumber}', ${o.totalValue})">VOID</button></td>
+                    <td>₱${o.totalValue.toLocaleString()}</td>
+                    <td class="no-print"><button class="btn-void" onclick="v('${id}','${o.siNumber}')">VOID</button></td>
                 </tr>`;
             });
-            document.getElementById('count').innerText = Object.keys(data).length;
-        });
-
-        onValue(ref(db, '.info/connected'), (snap) => {
-            const bar = document.getElementById('status-bar');
-            bar.style.background = snap.val() ? "#34c759" : "#ff3b30";
-            bar.innerText = snap.val() ? "SECURE MANAGER LINK ACTIVE" : "OFFLINE";
         });
     }
 
-    window.voidOrder = (id, si, amount) => {
-        const reason = prompt("Enter reason for VOID (Required for Audit):");
-        if (!reason) return alert("Void canceled. Reason is mandatory.");
-
-        if (confirm(`Confirm VOID for ${si}? This will be logged permanently.`)) {
-            // 1. Move to Void History
-            onValue(ref(db, `history/${id}`), (snap) => {
-                const data = snap.val();
-                push(ref(db, 'voided_history'), {
-                    ...data,
-                    voidReason: reason,
-                    voidedBy: auth.currentUser.email,
-                    voidedAt: serverTimestamp()
+    window.v = (id, si) => {
+        const reason = prompt("Enter reason for VOID:");
+        if(!reason) return;
+        if(confirm("Confirm VOID for SI: " + si + "?")) {
+            onValue(ref(db,`history/${id}`), s => {
+                push(ref(db,'voided_history'), {
+                    ...s.val(), 
+                    voidedAt: serverTimestamp(), 
+                    reason: reason,
+                    authorizedBy: auth.currentUser.email
                 }).then(() => {
-                    // 2. Remove from active history
                     remove(ref(db, `history/${id}`));
-                    
-                    // 3. Log to Audit Trail
-                    push(ref(db, 'audit_trail'), {
-                        action: "VOID_SALE",
-                        si: si,
-                        reason: reason,
-                        amount: amount,
-                        manager: auth.currentUser.email,
-                        time: serverTimestamp()
-                    });
-
-                    // 4. Adjust Non-Resettable Total (Optional: Most BIR systems keep the total but flag the void)
-                    // We will keep the Grand Total as is to show "Gross before Voids" as per most accreditation rules.
-                    
-                    alert("Order Voided and Logged.");
+                    alert("Order Voided and Logged in Audit Trail.");
                 });
-            }, { onlyOnce: true });
+            }, {onlyOnce:true});
         }
-    };
+    }
 </script>
 </body>
 </html>
