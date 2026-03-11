@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Bar/Kitchen Display (KDS)</title>
+</head>
+<body class="bg-black text-white p-6">
+    <header class="flex justify-between items-center mb-10">
+        <h1 class="text-4xl font-black tracking-tighter text-fuchsia-500">LIVE ORDERS (KDS)</h1>
+        <div id="clock" class="text-2xl font-mono">12:00:00 PM</div>
+    </header>
+
+    <div id="order-grid" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-app.compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-database.compat.js"></script>
+    <script src="app.js"></script>
+    <script>
+        // Listen for new orders in real-time
+        db.ref('orders').on('value', (snapshot) => {
+            const orders = snapshot.val();
+            const grid = document.getElementById('order-grid');
+            grid.innerHTML = ''; // Clear current view
+
+            for (let id in orders) {
+                if (orders[id].status === 'pending') {
+                    const orderDate = new Date(orders[id].timestamp).toLocaleTimeString();
+                    grid.innerHTML += `
+                        <div class="bg-slate-900 border-t-4 border-fuchsia-600 p-6 rounded-lg shadow-2xl">
+                            <div class="flex justify-between mb-4">
+                                <span class="font-bold text-xl">${orders[id].table}</span>
+                                <span class="text-slate-500">${orderDate}</span>
+                            </div>
+                            <ul class="space-y-2 mb-6">
+                                ${orders[id].items.map(item => `<li class="text-lg">○ ${item}</li>`).join('')}
+                            </ul>
+                            <button onclick="completeOrder('${id}')" class="w-full bg-emerald-600 py-3 rounded font-bold uppercase hover:bg-emerald-500 transition-colors">
+                                Mark Served
+                            </button>
+                        </div>
+                    `;
+                }
+            }
+        });
+
+        function completeOrder(id) {
+            db.ref('orders/' + id).update({ status: 'completed' });
+        }
+    </script>
+</body>
+</html>
