@@ -1,4 +1,4 @@
-// Firebase Configuration (Replace with your Firebase Console keys)
+// Firebase Configuration - Replace with your own from Firebase Console
 const firebaseConfig = {
   apiKey: "AIzaSyBY1ctdRkTUktpt-uYhRqFxF37jkylxsGs",
   authDomain: "lovelyentclub-pos.firebaseapp.com",
@@ -10,9 +10,14 @@ const firebaseConfig = {
   measurementId: "G-6D8ZF67C2T"
 };
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+// Initialize
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
 const db = firebase.database();
 
-// Global Functions
-const formatCurrency = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'PHP' }).format(num);
+// Helper: Format Currency
+const toUSD = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: PHP' }).format(num);
+
+// Helper: Get Timestamp
+const getTime = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
