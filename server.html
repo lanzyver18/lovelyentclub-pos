@@ -1,123 +1,41 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>SERVER | PICKUP STATION</title>
+    <meta charset="UTF-8"><title>SERVER | DELIVERY</title>
     <style>
-        :root { --accent: #5856d6; --bg: #f2f2f7; --success: #34c759; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding-bottom: 60px; }
-        header { background: #000; color: #fff; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
+        body { font-family: -apple-system, sans-serif; background: #f2f2f7; margin: 0; }
+        header { background: #000; color: #fff; padding: 20px; display: flex; justify-content: space-between; }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; padding: 20px; }
-        
-        .card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-left: 8px solid var(--accent); position: relative; }
-        .table-no { font-size: 2.2rem; font-weight: 900; color: var(--accent); }
-        .order-info { color: #888; font-family: monospace; font-size: 0.85rem; margin-bottom: 10px; }
-        .items-list { margin: 15px 0; font-size: 1.1rem; line-height: 1.4; font-weight: 500; }
-        
-        .btn-deliver { width: 100%; padding: 15px; background: #000; color: #fff; border: none; border-radius: 12px; font-weight: 800; font-size: 1rem; cursor: pointer; transition: transform 0.1s; }
-        .btn-deliver:active { transform: scale(0.98); background: var(--success); }
-
-        #status-bar { position: fixed; bottom: 0; width: 100%; padding: 10px; text-align: center; font-weight: bold; font-size: 0.8rem; color: #fff; transition: 0.3s; }
-        .online { background: var(--success); }
-        .offline { background: #ff3b30; }
+        .card { background: #fff; border-radius: 16px; padding: 20px; border-left: 8px solid #5856d6; }
+        .btn { width: 100%; padding: 15px; background: #000; color: #fff; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; }
     </style>
 </head>
 <body>
-
-<header>
-    <div style="font-weight: 900; font-size: 1.4rem;">READY FOR DELIVERY</div>
-    <div id="clock" style="font-family: monospace;">00:00:00</div>
-</header>
-
-<div class="grid" id="deliveryGrid"></div>
-
-<div id="status-bar" class="offline">CONNECTING...</div>
-
+<header><h2>READY FOR DELIVERY</h2><div id="clock"></div></header>
+<div class="grid" id="list"></div>
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getDatabase, ref, onValue, push, remove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-    const config = { 
-        apiKey: "AIzaSyBY1ctdRkTUktpt-uYhRqFxF37jkylxsGs", 
-        authDomain: "lovelyentclub-pos.firebaseapp.com", 
-        projectId: "lovelyentclub-pos", 
-        databaseURL: "https://lovelyentclub-pos-default-rtdb.firebaseio.com" 
-    };
-
-    const app = initializeApp(config);
-    const db = getDatabase(app);
-    const auth = getAuth(app);
-
-    signInAnonymously(auth);
-
-    // 1. Connection Monitoring
-    onValue(ref(db, '.info/connected'), (snap) => {
-        const bar = document.getElementById('status-bar');
-        if (snap.val() === true) {
-            bar.innerText = "SERVER LINK ACTIVE";
-            bar.className = "online";
-        } else {
-            bar.innerText = "OFFLINE - RECONNECTING";
-            bar.className = "offline";
-        }
-    });
-
-    // 2. Real-time Pickup List
+    const cfg = { apiKey: "AIzaSyBY1ctdRkTUktpt-uYhRqFxF37jkylxsGs", authDomain: "lovelyentclub-pos.firebaseapp.com", projectId: "lovelyentclub-pos", databaseURL: "https://lovelyentclub-pos-default-rtdb.firebaseio.com" };
+    const app = initializeApp(cfg); const db = getDatabase(app); signInAnonymously(getAuth(app));
     onValue(ref(db, 'orders'), (snap) => {
-        const grid = document.getElementById('deliveryGrid');
-        grid.innerHTML = '';
-        const data = snap.val();
-        
-        if (!data) {
-            grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:50px; color:#aaa; font-weight:600;">NO ORDERS READY</div>';
-            return;
-        }
-
-        Object.entries(data).forEach(([id, order]) => {
-            if (order.status === "READY") {
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.innerHTML = `
-                    <div class="table-no">${order.table}</div>
-                    <div class="order-info">${order.siNumber}</div>
-                    <div class="items-list">
-                        ${order.details.map(i => `• ${i.n} <small>(${i.mod})</small>`).join('<br>')}
-                    </div>
-                    <button class="btn-deliver" onclick="markDelivered('${id}')">CONFIRM DELIVERY</button>
-                `;
-                grid.appendChild(card);
+        const grid = document.getElementById('list'); grid.innerHTML = '';
+        const data = snap.val(); if (!data) return;
+        Object.entries(data).forEach(([id, o]) => {
+            if (o.status === "READY") {
+                const c = document.createElement('div'); c.className = 'card';
+                c.innerHTML = `<h2>${o.table}</h2><p>${o.details.map(i => i.n).join(', ')}</p><button class="btn" onclick="deliver('${id}')">DELIVERED</button>`;
+                grid.appendChild(c);
             }
         });
     });
-
-    // 3. Archive Logic (Moves data to History node)
-    window.markDelivered = (id) => {
-        const orderRef = ref(db, `orders/${id}`);
-        onValue(orderRef, (snap) => {
-            const data = snap.val();
-            if (data) {
-                // Move to history for permanent BIR logging
-                push(ref(db, 'history'), {
-                    ...data,
-                    status: "CLOSED",
-                    deliveredAt: serverTimestamp()
-                }).then(() => {
-                    // Remove from active orders ONLY after successful archive
-                    remove(orderRef);
-                    // Log to audit trail
-                    push(ref(db, 'audit_trail'), {
-                        action: "DELIVERED",
-                        si: data.siNumber,
-                        table: data.table,
-                        time: serverTimestamp()
-                    });
-                }).catch(err => alert("Sync Error: " + err.message));
-            }
+    window.deliver = (id) => {
+        onValue(ref(db, `orders/${id}`), (s) => {
+            const data = s.val(); if(!data) return;
+            push(ref(db, 'history'), { ...data, status: "CLOSED", deliveredAt: serverTimestamp() }).then(() => remove(ref(db, `orders/${id}`)));
         }, { onlyOnce: true });
     };
-
-    setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString(); }, 1000);
 </script>
 </body>
 </html>
