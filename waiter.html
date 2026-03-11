@@ -4,44 +4,58 @@
     <meta charset="UTF-8">
     <title>POS | WAITER TERMINAL</title>
     <style>
-        :root { --accent: #007aff; --bg: #f2f2f7; }
+        :root { --accent: #007aff; --bg: #f2f2f7; --danger: #ff3b30; }
         body { font-family: -apple-system, sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); overflow: hidden; }
+        
+        /* Employee Login Overlay */
+        #emp-login { position: fixed; inset: 0; background: #1c1c1e; display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .pin-box { background: #fff; padding: 40px; border-radius: 20px; text-align: center; width: 300px; }
+        .pin-display { font-size: 2rem; letter-spacing: 10px; margin-bottom: 20px; border-bottom: 2px solid #ddd; padding: 10px; height: 40px; }
+        .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .num-btn { padding: 20px; font-size: 1.2rem; font-weight: bold; background: #f0f0f0; border: none; border-radius: 10px; cursor: pointer; }
+        
+        /* Main UI */
         .sidebar { width: 80px; background: #000; color: #fff; display: flex; flex-direction: column; align-items: center; padding-top: 15px; }
         .main { flex: 1; display: flex; flex-direction: column; }
         .cart { width: 350px; background: #fff; border-left: 1px solid #ddd; display: flex; flex-direction: column; }
         .t-btn { width: 60px; height: 60px; border: 1px solid #444; margin: 5px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 12px; font-weight: bold; }
         .t-btn.active { background: var(--accent); border: none; }
-        .search-bar { padding: 15px; background: #fff; border-bottom: 1px solid #ddd; }
-        .search-bar input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 1rem; }
+        .search-bar { padding: 15px; background: #fff; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
+        .search-bar input { width: 70%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 1rem; }
         .menu-grid { padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; overflow-y: auto; }
-        .item { background: #fff; padding: 15px; border-radius: 12px; text-align: center; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .item { background: #fff; padding: 15px; border-radius: 12px; text-align: center; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: 0.2s; position: relative; }
+        .item.out { background: #ffebeb; cursor: not-allowed; opacity: 0.6; border: 1px solid var(--danger); }
         .footer { padding: 20px; background: #f9f9f9; border-top: 1px solid #ddd; }
         .btn-send { width: 100%; padding: 18px; background: #000; color: #fff; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; }
         #status-bar { padding: 5px; text-align: center; color: #fff; font-size: 0.7rem; font-weight: bold; }
-        .disc-btn { flex: 1; border: none; padding: 10px; border-radius: 5px; font-size: 0.7rem; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
+
+    <div id="emp-login">
+        <div class="pin-box">
+            <h2 style="margin-top:0">STAFF LOGIN</h2>
+            <div id="pin-dots" class="pin-display"></div>
+            <div class="numpad" id="numpad">
+                </div>
+            <button onclick="clearPin()" style="margin-top:15px; background:none; border:none; color:red; cursor:pointer;">Clear PIN</button>
+        </div>
+    </div>
+
     <div class="sidebar" id="tableList"></div>
     <div class="main">
-        <div class="search-bar"><input type="text" id="search" placeholder="Quick Search Menu..." oninput="renderMenu()"></div>
+        <div class="search-bar">
+            <input type="text" id="search" placeholder="Search Menu..." oninput="renderMenu()">
+            <div id="user-display" style="font-size: 0.8rem; font-weight: bold;" onclick="location.reload()">LOGOUT</div>
+        </div>
         <div class="menu-grid" id="menuGrid"></div>
     </div>
     <div class="cart">
         <div id="status-bar" style="background: red;">OFFLINE</div>
         <div style="padding:15px; background:#000; color:#fff; font-weight:bold;" id="tableTitle">SELECT TABLE</div>
         <div id="cartDisplay" style="flex:1; padding:15px; overflow-y:auto;"></div>
-        
-        <div style="padding:15px; background:#fff9f0; display:flex; gap:5px;">
-            <button class="disc-btn" onclick="applyDisc(0.20)" style="background:#ff9500; color:white;">SC/PWD (20%)</button>
-            <button class="disc-btn" onclick="applyDisc(0)" style="background:#ccc;">REGULAR</button>
-        </div>
-
         <div class="footer">
-            <div style="display:flex; justify-content:space-between; color:#888; font-size:0.9rem;">
-                <span>Discount</span><span id="discDisplay">-₱0</span>
-            </div>
-            <h2 id="totalTxt" style="margin: 10px 0;">₱0</h2>
+            <h2 id="totalTxt">₱0</h2>
             <button class="btn-send" onclick="sendOrder()">SEND TO KITCHEN</button>
         </div>
     </div>
@@ -49,21 +63,45 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getDatabase, ref, runTransaction, push, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, runTransaction, push, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
     const config = { apiKey: "AIzaSyBY1ctdRkTUktpt-uYhRqFxF37jkylxsGs", authDomain: "lovelyentclub-pos.firebaseapp.com", projectId: "lovelyentclub-pos", databaseURL: "https://lovelyentclub-pos-default-rtdb.firebaseio.com" };
     const app = initializeApp(config); const db = getDatabase(app); const auth = getAuth(app);
     signInAnonymously(auth);
 
-    const MENU = [
-        {n:"Burger",p:280,c:"Food"},{n:"Wings",p:250,c:"Food"},
-        {n:"Beer",p:120,c:"Bar"},{n:"Soda",p:80,c:"Bar"},
-        {n:"Pizza",p:450,c:"Food"},{n:"Tequila",p:180,c:"Bar"}
-    ];
-    let cart = []; let curT = ""; let discRate = 0;
+    // EMPLOYEE DATA (Sync this from dashboard eventually)
+    const EMPLOYEES = { "1234": "Sarah J.", "5678": "Mark V.", "1111": "Admin" };
+    let activeStaff = ""; let currentPin = "";
 
-    document.getElementById('tableList').innerHTML = ["T1","T2","T3","T4","V1","V2"].map(t => `<div class="t-btn" onclick="setT(this,'${t}')">${t}</div>`).join('');
-    
+    // PIN LOGIC
+    const numpad = document.getElementById('numpad');
+    [1,2,3,4,5,6,7,8,9,0].forEach(n => {
+        const btn = document.createElement('button');
+        btn.className = 'num-btn'; btn.innerText = n;
+        btn.onclick = () => enterDigit(n);
+        numpad.appendChild(btn);
+    });
+
+    function enterDigit(n) {
+        currentPin += n;
+        document.getElementById('pin-dots').innerText = "*".repeat(currentPin.length);
+        if(currentPin.length === 4) {
+            if(EMPLOYEES[currentPin]) {
+                activeStaff = EMPLOYEES[currentPin];
+                document.getElementById('emp-login').style.display = 'none';
+                document.getElementById('user-display').innerText = "WAITER: " + activeStaff.toUpperCase();
+            } else {
+                alert("Invalid PIN"); clearPin();
+            }
+        }
+    }
+    window.clearPin = () => { currentPin = ""; document.getElementById('pin-dots').innerText = ""; };
+
+    let currentInventory = {}; let cart = []; let curT = "";
+
+    document.getElementById('tableList').innerHTML = ["T1","T2","T3","T4","V1"].map(t => `<div class="t-btn" onclick="setT(this,'${t}')">${t}</div>`).join('');
+    onValue(ref(db, 'inventory'), (snap) => { currentInventory = snap.val() || {}; renderMenu(); });
+
     window.setT = (el,t) => {
         document.querySelectorAll('.t-btn').forEach(b => b.classList.remove('active'));
         el.classList.add('active'); curT = t;
@@ -72,62 +110,53 @@
 
     window.renderMenu = () => {
         const q = document.getElementById('search').value.toLowerCase();
-        document.getElementById('menuGrid').innerHTML = MENU.filter(i=>i.n.toLowerCase().includes(q)).map(i=>`
-            <div class="item" onclick="add('${i.n}',${i.p},'${i.c}')"><b>${i.n}</b><br>₱${i.p}</div>`).join('');
+        const grid = document.getElementById('menuGrid'); grid.innerHTML = '';
+        Object.entries(currentInventory).forEach(([name, data]) => {
+            if(name.toLowerCase().includes(q)) {
+                const isOut = data.qty <= 0;
+                const div = document.createElement('div');
+                div.className = `item ${isOut ? 'out' : ''}`;
+                div.onclick = isOut ? null : () => add(name, 150, data.category);
+                div.innerHTML = `<b>${name}</b><br><span style="font-size:0.7rem; color:#888;">${isOut ? 'SOLD OUT' : 'Stock: '+data.qty}</span>`;
+                grid.appendChild(div);
+            }
+        });
     };
 
-    window.add = (n,p,c) => {
-        const mod = prompt(`Instructions for ${n}? (e.g. No Spicy, Extra Ice)`, "None");
-        cart.push({n, p, c, mod: mod || "None"});
-        updateUI();
-    };
-
-    window.applyDisc = (v) => { discRate = v; updateUI(); };
+    window.add = (n,p,c) => { cart.push({n, p, c}); updateUI(); };
 
     function updateUI() {
-        const d = document.getElementById('cartDisplay');
-        d.innerHTML = cart.map((i,idx)=>`
-            <div style="border-bottom:1px solid #eee; padding:8px 0; display:flex; justify-content:space-between; align-items:center;">
-                <div><b>${i.n}</b><br><small style="color:#888">${i.mod}</small></div>
-                <button onclick="cart.splice(${idx},1); updateUI();" style="border:none; background:none; color:red; cursor:pointer;">✕</button>
-            </div>`).join('');
-        
-        const subtotal = cart.reduce((a,b)=>a+b.p,0);
-        const savings = subtotal * discRate;
-        const total = subtotal - savings;
-
-        document.getElementById('discDisplay').innerText = "-₱" + savings.toLocaleString();
+        document.getElementById('cartDisplay').innerHTML = cart.map((i,idx)=>`<div style="border-bottom:1px solid #eee; padding:5px;"><b>${i.n}</b></div>`).join('');
+        const total = cart.reduce((a,b)=>a+150,0); // Fallback price
         document.getElementById('totalTxt').innerText = "₱" + total.toLocaleString();
     }
 
     window.sendOrder = async () => {
-        if(!curT || cart.length === 0) return alert("Select Table and Items first!");
-        const total = cart.reduce((a,b)=>a+b.p,0) * (1-discRate);
-        
+        if(!curT || cart.length === 0) return alert("Missing Info");
+        const total = cart.length * 150;
         await runTransaction(ref(db,'system_controls'),(c)=>{
             if(!c) return {lastSI:1,accumulatedGrandTotal:total};
             return {lastSI:c.lastSI+1,accumulatedGrandTotal:c.accumulatedGrandTotal+total};
         }).then(res => {
             const si = "SI-"+String(res.snapshot.val().lastSI).padStart(6,'0');
-            push(ref(db,'orders'), {
-                siNumber: si, 
-                table: curT, 
-                details: cart, 
-                totalValue: total, 
-                discountApplied: discRate > 0 ? "SC/PWD" : "None",
-                status: "PENDING", 
-                timestamp: Date.now()
+            cart.forEach(item => {
+                const newQty = (currentInventory[item.n]?.qty || 0) - 1;
+                update(ref(db, `inventory/${item.n}`), { qty: Math.max(0, newQty) });
             });
-            alert("SENT TO KITCHEN: " + si); cart=[]; updateUI();
+            push(ref(db,'orders'), {
+                siNumber: si, table: curT, details: cart, totalValue: total,
+                waiter: activeStaff, // EMPLOYEE TAGGING
+                status: "PENDING", timestamp: Date.now()
+            });
+            alert("SENT BY " + activeStaff); cart=[]; updateUI();
         });
     };
 
     onValue(ref(db,'.info/connected'),(s)=>{
         const b = document.getElementById('status-bar');
         b.style.background = s.val() ? "#34c759" : "red";
-        b.innerText = s.val() ? "ONLINE" : "OFFLINE - CHECK CONNECTION";
+        b.innerText = s.val() ? "ONLINE" : "OFFLINE";
     });
-    renderMenu();
 </script>
 </body>
 </html>
