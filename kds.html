@@ -4,52 +4,36 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.10.0/firebase-database-compat.js"></script>
-    <title>Bar KDS | Live Orders</title>
 </head>
-<body class="bg-black text-white p-8">
-    <header class="flex justify-between items-center mb-10 border-b border-slate-800 pb-6">
-        <h1 class="text-4xl font-black tracking-tighter">BAR <span class="text-emerald-500">KDS</span></h1>
-        <div id="clock" class="text-xl font-mono text-slate-500">00:00:00</div>
-    </header>
+<body class="bg-black text-white p-6">
+    <div class="flex justify-between items-center mb-10">
+        <h1 class="text-5xl font-black text-emerald-500 italic uppercase">Live Orders</h1>
+        <div id="timer" class="text-2xl font-mono text-slate-500"></div>
+    </div>
 
-    <div id="kds-grid" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        </div>
+    <div id="kds-list" class="grid grid-cols-1 md:grid-cols-4 gap-6"></div>
 
     <script src="app.js"></script>
     <script>
-        setInterval(() => document.getElementById('clock').innerText = new Date().toLocaleTimeString(), 1000);
+        setInterval(() => document.getElementById('timer').innerText = new Date().toLocaleTimeString(), 1000);
 
-        db.ref('orders').on('value', (snap) => {
-            const grid = document.getElementById('kds-grid');
-            grid.innerHTML = "";
+        db.ref('orders').on('value', snap => {
+            const list = document.getElementById('kds-list');
+            list.innerHTML = "";
             const orders = snap.val();
-
-            for (let id in orders) {
+            for(let id in orders) {
                 if(orders[id].status === 'pending') {
-                    const timeDiff = Math.floor((Date.now() - orders[id].timestamp) / 60000);
-                    const color = timeDiff > 10 ? 'border-red-600' : 'border-emerald-600';
-                    
-                    grid.innerHTML += `
-                        <div class="bg-slate-900 border-t-8 ${color} p-6 rounded-xl shadow-2xl">
-                            <div class="flex justify-between items-start mb-4">
-                                <h3 class="text-3xl font-bold">${orders[id].table}</h3>
-                                <span class="bg-slate-800 px-2 py-1 rounded text-sm">${timeDiff}m ago</span>
-                            </div>
-                            <div class="space-y-2 mb-8">
-                                ${orders[id].items.map(i => `<p class="text-xl font-medium">○ ${i}</p>`).join('')}
-                            </div>
-                            <button onclick="completeOrder('${id}')" class="w-full bg-emerald-600 py-4 rounded font-black hover:bg-emerald-500 uppercase tracking-widest">
-                                BUMP ORDER
-                            </button>
+                    list.innerHTML += `
+                        <div class="bg-slate-900 border-l-8 border-emerald-500 p-6 rounded-r-xl">
+                            <h2 class="text-4xl font-bold mb-4">${orders[id].table}</h2>
+                            <ul class="text-xl mb-6 space-y-2">${orders[id].items.map(i => `<li>- ${i}</li>`).join('')}</ul>
+                            <button onclick="complete('${id}')" class="w-full bg-emerald-600 py-3 font-bold rounded">SERVED</button>
                         </div>
                     `;
                 }
             }
         });
-
-        function completeOrder(id) {
-            db.ref(`orders/${id}`).update({ status: 'completed' });
-        }
+        function complete(id) { db.ref('orders/'+id).update({status: 'completed'}); }
     </script>
 </body>
 </html>
