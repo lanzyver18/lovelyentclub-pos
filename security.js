@@ -1,23 +1,23 @@
-const STAFF_DATABASE = {
-    "1234": { name: "Alex (Server)", role: "staff" },
-    "0000": { name: "Jordan (Manager)", role: "admin" }
+const STAFF = {
+    "1234": { name: "Server 1", role: "staff" },
+    "0000": { name: "Manager", role: "admin" }
 };
 
-let authenticatedUser = null;
+let currentPin = "";
 
 function showPinPad(callback) {
     const overlay = document.createElement('div');
     overlay.id = "pin-overlay";
-    overlay.className = "fixed inset-0 bg-slate-950/fb z-[999] flex flex-col items-center justify-center backdrop-blur-md";
+    overlay.className = "fixed inset-0 bg-slate-950 z-[999] flex flex-col items-center justify-center";
     overlay.innerHTML = `
-        <div class="bg-slate-900 p-8 rounded-3xl border border-slate-800 shadow-2xl w-80">
-            <h2 class="text-xl font-bold text-fuchsia-500 mb-6 text-center tracking-widest">STAFF LOGIN</h2>
-            <div id="pin-display" class="flex justify-center gap-3 mb-8 h-4">
+        <div class="bg-slate-900 p-8 rounded-3xl border border-slate-800 w-80 shadow-2xl">
+            <h2 class="text-fuchsia-500 font-bold text-center mb-6 tracking-widest">STAFF PIN</h2>
+            <div id="dots" class="flex justify-center gap-3 mb-8 h-4">
                 ${[1,2,3,4].map(() => `<div class="w-3 h-3 rounded-full border-2 border-slate-700"></div>`).join('')}
             </div>
             <div class="grid grid-cols-3 gap-3">
-                ${[1,2,3,4,5,6,7,8,9, 'C', 0, 'OK'].map(key => `
-                    <button onclick="handleKey('${key}', ${callback})" class="h-16 bg-slate-800 rounded-xl text-xl font-bold hover:bg-fuchsia-600 transition-colors">${key}</button>
+                ${[1,2,3,4,5,6,7,8,9, 'C', 0, 'OK'].map(k => `
+                    <button onclick="handleKey('${k}', ${callback})" class="h-16 bg-slate-800 rounded-xl font-bold text-xl hover:bg-fuchsia-600 transition-all">${k}</button>
                 `).join('')}
             </div>
         </div>
@@ -25,28 +25,21 @@ function showPinPad(callback) {
     document.body.appendChild(overlay);
 }
 
-let currentPin = "";
 function handleKey(key, callback) {
     if (key === 'C') currentPin = "";
     else if (key === 'OK') {
-        const user = STAFF_DATABASE[currentPin];
-        if (user) {
+        if (STAFF[currentPin]) {
+            const user = STAFF[currentPin];
             document.getElementById('pin-overlay').remove();
-            authenticatedUser = user;
+            currentPin = "";
             callback(user);
         } else {
-            alert("Wrong PIN");
+            alert("Invalid PIN");
             currentPin = "";
         }
     } else if (currentPin.length < 4) {
         currentPin += key;
     }
-    updateDots();
-}
-
-function updateDots() {
-    const dots = document.getElementById('pin-display').children;
-    Array.from(dots).forEach((dot, i) => {
-        dot.className = i < currentPin.length ? "w-3 h-3 rounded-full bg-fuchsia-500 shadow-[0_0_8px_#d946ef]" : "w-3 h-3 rounded-full border-2 border-slate-700";
-    });
+    const dots = document.getElementById('dots').children;
+    Array.from(dots).forEach((dot, i) => dot.className = i < currentPin.length ? "w-3 h-3 rounded-full bg-fuchsia-500" : "w-3 h-3 rounded-full border-2 border-slate-700");
 }
