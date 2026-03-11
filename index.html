@@ -1,17 +1,23 @@
 <!DOCTYPE html>
 <html>
-<head><title>KITCHEN MONITOR</title>
+<head>
+    <meta charset="UTF-8">
+    <title>KITCHEN MONITOR | ALL ORDERS</title>
 <style>
-    body { background: #000; color: #fff; font-family: sans-serif; margin: 0; }
-    .header { background: #fff; color: #000; padding: 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px; padding: 15px; }
-    .card { border: 3px solid #fff; padding: 20px; border-radius: 12px; background: #111; display: flex; flex-direction: column; min-height: 250px; }
-    .btn { background: #34c759; border: none; padding: 15px; width: 100%; color: #000; font-weight: 900; border-radius: 8px; cursor: pointer; margin-top: auto; }
+    body { background: #000; color: #fff; font-family: -apple-system, sans-serif; margin: 0; }
+    .header { background: #fff; color: #000; padding: 15px; font-weight: 900; display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid #555; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px; padding: 20px; }
+    .card { border: 3px solid #fff; padding: 20px; border-radius: 12px; background: #111; display: flex; flex-direction: column; min-height: 250px; box-shadow: 0 4px 10px rgba(255,255,255,0.1); }
+    .table-header { font-size: 1.8rem; border-bottom: 1px solid #444; padding-bottom: 10px; margin-bottom: 15px; display: flex; justify-content: space-between; }
+    .items-area { flex: 1; font-size: 1.3rem; font-weight: 600; line-height: 1.5; }
+    .mod-text { color: #ffcc00; font-size: 0.9rem; margin-left: 15px; font-style: italic; }
+    .btn { background: #34c759; border: none; padding: 18px; width: 100%; color: #000; font-weight: 900; border-radius: 8px; cursor: pointer; margin-top: 15px; font-size: 1.1rem; }
+    .btn:active { background: #28a745; transform: scale(0.98); }
 </style>
 </head>
 <body>
     <div class="header">
-        <div>STATION: <select id="stationSelect" onchange="location.reload()"><option>Food</option><option>Bar</option></select></div>
+        <div style="font-size: 1.2rem;">KITCHEN & BAR MONITOR (ALL)</div>
         <div id="clock">00:00:00</div>
     </div>
     <div id="kdsGrid" class="grid"></div>
@@ -20,41 +26,60 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    const config = { apiKey: "AIzaSyBY1ctdRkTUktpt-uYhRqFxF37jkylxsGs", authDomain: "lovelyentclub-pos.firebaseapp.com", projectId: "lovelyentclub-pos", databaseURL: "https://lovelyentclub-pos-default-rtdb.firebaseio.com" };
-    const db = getDatabase(initializeApp(config));
-    
-    // Save station preference to browser
-    const MY_STATION = localStorage.getItem('station') || "Food";
-    document.getElementById('stationSelect').value = MY_STATION;
-    document.getElementById('stationSelect').onchange = (e) => {
-        localStorage.setItem('station', e.target.value);
-        location.reload();
+    // KEEPING YOUR EXACT CONFIGURATION
+    const config = { 
+        apiKey: "AIzaSyBY1ctdRkTUktpt-uYhRqFxF37jkylxsGs", 
+        authDomain: "lovelyentclub-pos.firebaseapp.com", 
+        projectId: "lovelyentclub-pos", 
+        databaseURL: "https://lovelyentclub-pos-default-rtdb.firebaseio.com" 
     };
 
+    const app = initializeApp(config);
+    const db = getDatabase(app);
+
+    // This listener now shows EVERY order with status "PENDING"
     onValue(ref(db, 'orders'), (snap) => {
-        const grid = document.getElementById('kdsGrid'); grid.innerHTML = '';
-        const data = snap.val(); if(!data) return;
+        const grid = document.getElementById('kdsGrid'); 
+        grid.innerHTML = '';
+        const data = snap.val(); 
+        
+        if(!data) {
+            grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:100px; color:#444; font-size:1.5rem;">WAITING FOR ORDERS...</div>';
+            return;
+        }
         
         Object.entries(data).forEach(([id, o]) => {
             if(o.status === "PENDING") {
-                const filtered = o.details.filter(i => i.c === MY_STATION);
-                if(filtered.length === 0) return;
-
-                const card = document.createElement('div'); card.className = 'card';
+                const card = document.createElement('div'); 
+                card.className = 'card';
                 card.innerHTML = `
-                    <div style="font-size:1.5rem; border-bottom:1px solid #444; padding-bottom:10px; margin-bottom:10px;">
-                        <b>${o.table}</b> <small style="float:right; font-size:0.8rem; color:#888;">${o.siNumber}</small>
+                    <div class="table-header">
+                        <b>${o.table}</b> 
+                        <span style="font-size:0.9rem; color:#888;">${o.siNumber}</span>
                     </div>
-                    <div style="flex:1; font-size:1.2rem;">
-                        ${filtered.map(i=>`• ${i.n} <br><small style="color:yellow; margin-left:15px;">— ${i.mod}</small>`).join('<br><br>')}
+                    <div class="items-area">
+                        ${o.details.map(item => `
+                            <div>
+                                • ${item.n} 
+                                <div class="mod-text">— ${item.mod || 'No instructions'}</div>
+                            </div>
+                        `).join('<br>')}
                     </div>
-                    <button class="btn" onclick="bump('${id}')">MARK COMPLETED</button>`;
+                    <button class="btn" onclick="bump('${id}')">MARK COMPLETED</button>
+                `;
                 grid.appendChild(card);
             }
         });
     });
-    window.bump = (id) => update(ref(db, `orders/${id}`), {status:"READY"});
-    setInterval(()=>document.getElementById('clock').innerText = new Date().toLocaleTimeString(), 1000);
+
+    // Bump function remains the same
+    window.bump = (id) => {
+        update(ref(db, `orders/${id}`), { status: "READY" });
+    };
+
+    setInterval(() => { 
+        document.getElementById('clock').innerText = new Date().toLocaleTimeString(); 
+    }, 1000);
 </script>
 </body>
 </html>
