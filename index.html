@@ -2,232 +2,40 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Kitchen Display System</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kitchen Display</title>
     <style>
-        :root {
-            --apple-bg: #000000;
-            --apple-card: #1C1C1E;
-            --apple-blue: #0A84FF;
-            --apple-green: #30D158;
-            --apple-gray: #8E8E93;
-            --glass: blur(20px) saturate(180%);
-        }
-
-        * { 
-            box-sizing: border-box; 
-            -webkit-font-smoothing: antialiased;
-            font-family: 'Inter', -apple-system, sans-serif;
-        }
-
-        body { 
-            background-color: var(--apple-bg); 
-            margin: 0; 
-            color: #FFFFFF;
-            overflow: hidden;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* Header Area */
-        header {
-            height: 80px;
-            padding: 0 40px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(28, 28, 30, 0.8);
-            backdrop-filter: var(--glass);
-            border-bottom: 0.5px solid #333;
-        }
-
-        .station-label {
-            font-size: 1.5rem;
-            font-weight: 800;
-            letter-spacing: -0.04em;
-        }
-
-        #clock {
-            font-family: monospace;
-            font-size: 1.2rem;
-            color: var(--apple-gray);
-        }
-
-        /* Orders Grid */
-        .grid {
-            flex: 1;
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-            gap: 20px;
-            padding: 30px;
-            overflow-y: auto;
-        }
-
-        /* Order Card Style */
-        .order-card {
-            background: var(--apple-card);
-            border-radius: 24px;
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
-            border: 1px solid #333;
-            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            min-height: 300px;
-        }
-
-        @keyframes popIn {
-            from { opacity: 0; transform: scale(0.9); }
-            to { opacity: 1; transform: scale(1); }
-        }
-
-        .order-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 20px;
-            border-bottom: 0.5px solid #444;
-            padding-bottom: 15px;
-        }
-
-        .table-no {
-            font-size: 2.2rem;
-            font-weight: 800;
-            color: var(--apple-blue);
-        }
-
-        .order-time {
-            font-size: 0.8rem;
-            color: var(--apple-gray);
-            font-weight: 600;
-        }
-
-        .items-list {
-            flex: 1;
-            font-size: 1.4rem;
-            font-weight: 600;
-            line-height: 1.4;
-        }
-
-        .modifier {
-            display: block;
-            font-size: 0.9rem;
-            color: #FFD60A; /* Bright Yellow for special instructions */
-            margin-bottom: 15px;
-            margin-left: 10px;
-            font-style: italic;
-        }
-
-        /* Action Button */
-        .btn-complete {
-            margin-top: 20px;
-            background: var(--apple-green);
-            color: #000;
-            border: none;
-            padding: 20px;
-            border-radius: 18px;
-            font-size: 1.1rem;
-            font-weight: 800;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-
-        .btn-complete:active {
-            transform: scale(0.96);
-            opacity: 0.8;
-        }
-
-        #status-dot {
-            width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 8px;
-        }
-        .online { background: var(--apple-green); }
-        .offline { background: #FF453A; }
+        body { background: #000; color: #fff; font-family: -apple-system, sans-serif; margin: 0; }
+        header { height: 70px; padding: 0 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; padding: 20px; }
+        .card { background: #1C1C1E; border-radius: 20px; padding: 20px; border: 1px solid #333; }
+        .table-no { font-size: 2rem; font-weight: 800; color: #0A84FF; }
+        .btn { width: 100%; background: #30D158; border: none; padding: 15px; border-radius: 12px; font-weight: 800; margin-top: 15px; cursor: pointer; }
     </style>
 </head>
 <body>
-
-    <header>
-        <div class="station-label">
-            <span id="status-dot" class="offline"></span>KITCHEN MONITOR
-        </div>
-        <div id="clock">00:00:00</div>
-    </header>
-
-    <div id="kds-grid" class="grid">
-        </div>
-
+    <header><h2>KITCHEN DISPLAY</h2><div id="clock"></div></header>
+    <div id="grid" class="grid"></div>
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-    const config = { 
-        apiKey: "AIzaSyBY1ctdRkTUktpt-uYhRqFxF37jkylxsGs", 
-        authDomain: "lovelyentclub-pos.firebaseapp.com", 
-        projectId: "lovelyentclub-pos", 
-        databaseURL: "https://lovelyentclub-pos-default-rtdb.firebaseio.com" 
-    };
-
-    const app = initializeApp(config);
-    const db = getDatabase(app);
-
-    // Monitor Connection
-    onValue(ref(db, '.info/connected'), (snap) => {
-        const dot = document.getElementById('status-dot');
-        dot.className = snap.val() ? 'online' : 'offline';
-    });
-
-    // Listen for Orders
+    const cfg = { apiKey: "AIzaSyBY1ctdRkTUktpt-uYhRqFxF37jkylxsGs", authDomain: "lovelyentclub-pos.firebaseapp.com", projectId: "lovelyentclub-pos", databaseURL: "https://lovelyentclub-pos-default-rtdb.firebaseio.com" };
+    const db = getDatabase(initializeApp(cfg));
     onValue(ref(db, 'orders'), (snap) => {
-        const grid = document.getElementById('kds-grid');
-        grid.innerHTML = '';
-        const data = snap.val();
-        
-        if (!data) {
-            grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; margin-top: 100px; color: #444; font-size: 1.5rem; font-weight: 700;">WAITING FOR ORDERS...</div>`;
-            return;
-        }
-
-        // Convert object to array and sort by timestamp
-        const sortedOrders = Object.entries(data).sort((a, b) => a[1].timestamp - b[1].timestamp);
-
-        sortedOrders.forEach(([id, order]) => {
-            if (order.status === "PENDING") {
-                const card = document.createElement('div');
-                card.className = 'order-card';
-                
-                const timeAgo = new Date(order.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-                card.innerHTML = `
-                    <div class="order-header">
-                        <div class="table-no">${order.table}</div>
-                        <div class="order-time">${timeAgo}</div>
-                    </div>
-                    <div class="items-list">
-                        ${order.details.map(item => `
-                            <div>
-                                • ${item.n}
-                                <span class="modifier">${item.mod && item.mod !== 'None' ? '— ' + item.mod : ''}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <button class="btn-complete" onclick="bump('${id}')">MARK AS READY</button>
-                `;
-                grid.appendChild(card);
+        const grid = document.getElementById('grid'); grid.innerHTML = '';
+        const data = snap.val(); if (!data) return;
+        Object.entries(data).sort((a, b) => a[1].timestamp - b[1].timestamp).forEach(([id, o]) => {
+            if (o.status === "PENDING") {
+                const c = document.createElement('div'); c.className = 'card';
+                c.innerHTML = `<div class="table-no">${o.table}</div><small>${new Date(o.timestamp).toLocaleTimeString()}</small>
+                    <div style="font-size:1.2rem; margin-top:15px;">${o.details.map(i => `• ${i.n} <br><small style="color:yellow;">— ${i.mod}</small><br>`).join('')}</div>
+                    <button class="btn" onclick="bump('${id}')">MARK READY</button>`;
+                grid.appendChild(c);
             }
         });
     });
-
-    // Bump function to update status to READY
-    window.bump = (id) => {
-        update(ref(db, `orders/${id}`), { status: "READY" });
-    };
-
-    // Clock Logic
-    setInterval(() => {
-        document.getElementById('clock').innerText = new Date().toLocaleTimeString();
-    }, 1000);
-
+    window.bump = (id) => update(ref(db, `orders/${id}`), { status: "READY" });
+    setInterval(() => document.getElementById('clock').innerText = new Date().toLocaleTimeString(), 1000);
 </script>
 </body>
 </html>
