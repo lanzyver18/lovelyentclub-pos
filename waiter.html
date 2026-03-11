@@ -12,30 +12,36 @@
         .t-btn { width: 60px; height: 60px; border: 1px solid #444; margin: 5px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 12px; font-weight: bold; }
         .t-btn.active { background: var(--accent); border: none; }
         .search-bar { padding: 15px; background: #fff; border-bottom: 1px solid #ddd; }
-        .search-bar input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; }
+        .search-bar input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 1rem; }
         .menu-grid { padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; overflow-y: auto; }
         .item { background: #fff; padding: 15px; border-radius: 12px; text-align: center; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .footer { padding: 20px; background: #f9f9f9; border-top: 1px solid #ddd; }
         .btn-send { width: 100%; padding: 18px; background: #000; color: #fff; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; }
         #status-bar { padding: 5px; text-align: center; color: #fff; font-size: 0.7rem; font-weight: bold; }
+        .disc-btn { flex: 1; border: none; padding: 10px; border-radius: 5px; font-size: 0.7rem; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="sidebar" id="tableList"></div>
     <div class="main">
-        <div class="search-bar"><input type="text" id="search" placeholder="Search Menu..." oninput="renderMenu()"></div>
+        <div class="search-bar"><input type="text" id="search" placeholder="Quick Search Menu..." oninput="renderMenu()"></div>
         <div class="menu-grid" id="menuGrid"></div>
     </div>
     <div class="cart">
         <div id="status-bar" style="background: red;">OFFLINE</div>
         <div style="padding:15px; background:#000; color:#fff; font-weight:bold;" id="tableTitle">SELECT TABLE</div>
         <div id="cartDisplay" style="flex:1; padding:15px; overflow-y:auto;"></div>
+        
         <div style="padding:15px; background:#fff9f0; display:flex; gap:5px;">
-            <button onclick="applyDisc(0.20)" style="flex:1; background:#ff9500; color:white; border:none; padding:8px; border-radius:5px; font-size:0.7rem; cursor:pointer;">SC/PWD (20%)</button>
-            <button onclick="applyDisc(0)" style="flex:1; background:#ccc; border:none; padding:8px; border-radius:5px; font-size:0.7rem; cursor:pointer;">REGULAR</button>
+            <button class="disc-btn" onclick="applyDisc(0.20)" style="background:#ff9500; color:white;">SC/PWD (20%)</button>
+            <button class="disc-btn" onclick="applyDisc(0)" style="background:#ccc;">REGULAR</button>
         </div>
+
         <div class="footer">
-            <h2 id="totalTxt">₱0</h2>
+            <div style="display:flex; justify-content:space-between; color:#888; font-size:0.9rem;">
+                <span>Discount</span><span id="discDisplay">-₱0</span>
+            </div>
+            <h2 id="totalTxt" style="margin: 10px 0;">₱0</h2>
             <button class="btn-send" onclick="sendOrder()">SEND TO KITCHEN</button>
         </div>
     </div>
@@ -49,11 +55,14 @@
     const app = initializeApp(config); const db = getDatabase(app); const auth = getAuth(app);
     signInAnonymously(auth);
 
-    const MENU = [{n:"Burger",p:280,c:"Food"},{n:"Wings",p:250,c:"Food"},{n:"Beer",p:120,c:"Bar"},{n:"Soda",p:80,c:"Bar"}];
-    let cart = []; let curT = ""; let disc = 0;
+    const MENU = [
+        {n:"Burger",p:280,c:"Food"},{n:"Wings",p:250,c:"Food"},
+        {n:"Beer",p:120,c:"Bar"},{n:"Soda",p:80,c:"Bar"},
+        {n:"Pizza",p:450,c:"Food"},{n:"Tequila",p:180,c:"Bar"}
+    ];
+    let cart = []; let curT = ""; let discRate = 0;
 
-    // Render Tables
-    document.getElementById('tableList').innerHTML = ["T1","T2","T3","T4","V1"].map(t => `<div class="t-btn" onclick="setT(this,'${t}')">${t}</div>`).join('');
+    document.getElementById('tableList').innerHTML = ["T1","T2","T3","T4","V1","V2"].map(t => `<div class="t-btn" onclick="setT(this,'${t}')">${t}</div>`).join('');
     
     window.setT = (el,t) => {
         document.querySelectorAll('.t-btn').forEach(b => b.classList.remove('active'));
@@ -68,36 +77,55 @@
     };
 
     window.add = (n,p,c) => {
-        const mod = prompt("Instructions? (e.g. No Ice)", "None");
-        cart.push({n,p,c,mod}); updateUI();
+        const mod = prompt(`Instructions for ${n}? (e.g. No Spicy, Extra Ice)`, "None");
+        cart.push({n, p, c, mod: mod || "None"});
+        updateUI();
     };
 
-    window.applyDisc = (v) => { disc = v; updateUI(); };
+    window.applyDisc = (v) => { discRate = v; updateUI(); };
 
     function updateUI() {
         const d = document.getElementById('cartDisplay');
-        d.innerHTML = cart.map((i,idx)=>`<div style="border-bottom:1px solid #eee; padding:5px;"><b>${i.n}</b><br><small>${i.mod}</small></div>`).join('');
-        const total = cart.reduce((a,b)=>a+b.p,0) * (1-disc);
+        d.innerHTML = cart.map((i,idx)=>`
+            <div style="border-bottom:1px solid #eee; padding:8px 0; display:flex; justify-content:space-between; align-items:center;">
+                <div><b>${i.n}</b><br><small style="color:#888">${i.mod}</small></div>
+                <button onclick="cart.splice(${idx},1); updateUI();" style="border:none; background:none; color:red; cursor:pointer;">✕</button>
+            </div>`).join('');
+        
+        const subtotal = cart.reduce((a,b)=>a+b.p,0);
+        const savings = subtotal * discRate;
+        const total = subtotal - savings;
+
+        document.getElementById('discDisplay').innerText = "-₱" + savings.toLocaleString();
         document.getElementById('totalTxt').innerText = "₱" + total.toLocaleString();
     }
 
     window.sendOrder = async () => {
-        if(!curT || cart.length === 0) return alert("Select Table/Items");
-        const total = cart.reduce((a,b)=>a+b.p,0) * (1-disc);
+        if(!curT || cart.length === 0) return alert("Select Table and Items first!");
+        const total = cart.reduce((a,b)=>a+b.p,0) * (1-discRate);
+        
         await runTransaction(ref(db,'system_controls'),(c)=>{
             if(!c) return {lastSI:1,accumulatedGrandTotal:total};
             return {lastSI:c.lastSI+1,accumulatedGrandTotal:c.accumulatedGrandTotal+total};
         }).then(res => {
             const si = "SI-"+String(res.snapshot.val().lastSI).padStart(6,'0');
-            push(ref(db,'orders'), {siNumber:si, table:curT, details:cart, totalValue:total, status:"PENDING", timestamp:Date.now()});
-            alert("SENT: " + si); cart=[]; updateUI();
+            push(ref(db,'orders'), {
+                siNumber: si, 
+                table: curT, 
+                details: cart, 
+                totalValue: total, 
+                discountApplied: discRate > 0 ? "SC/PWD" : "None",
+                status: "PENDING", 
+                timestamp: Date.now()
+            });
+            alert("SENT TO KITCHEN: " + si); cart=[]; updateUI();
         });
     };
 
     onValue(ref(db,'.info/connected'),(s)=>{
         const b = document.getElementById('status-bar');
         b.style.background = s.val() ? "#34c759" : "red";
-        b.innerText = s.val() ? "ONLINE" : "OFFLINE";
+        b.innerText = s.val() ? "ONLINE" : "OFFLINE - CHECK CONNECTION";
     });
     renderMenu();
 </script>
