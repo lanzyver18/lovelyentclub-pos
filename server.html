@@ -1,31 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><title>SERVER PICKUP</title></head>
 <body>
-    <h1>READY FOR DELIVERY</h1>
+    <h1>READY FOR TABLE</h1>
     <div id="readyList"></div>
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
     import { getDatabase, ref, onValue, remove, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
-
+    
     const db = getDatabase(initializeApp({ databaseURL: "https://pos-lovelyentclub-default-rtdb.firebaseio.com" }));
 
     onValue(ref(db, 'orders'), (snap) => {
         const list = document.getElementById('readyList');
         list.innerHTML = '';
         Object.entries(snap.val() || {}).forEach(([id, order]) => {
-            if (order.status === "COMPLETED") {
-                list.innerHTML += `<div>${order.table} - ${order.siNumber} <button onclick="deliver('${id}')">DELIVERED</button></div>`;
+            if (order.status === "READY") {
+                list.innerHTML += `<div>${order.siNumber} <button onclick="deliver('${id}')">DELIVERED</button></div>`;
             }
         });
     });
 
     window.deliver = (id) => {
-        // BIR MANDATORY: Move to History, do not simply delete
         onValue(ref(db, `orders/${id}`), (snap) => {
             const data = snap.val();
             push(ref(db, 'history'), { ...data, deliveredAt: serverTimestamp() });
-            remove(ref(db, `orders/${id}`));
+            [span_6](start_span)remove(ref(db, `orders/${id}`)); // Only once archived to history[span_6](end_span)
         }, { onlyOnce: true });
     };
 </script>
