@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <body>
-    <h1>READY FOR TABLE</h1>
+    <h1>READY FOR PICKUP</h1>
     <div id="readyList"></div>
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
@@ -14,7 +14,9 @@
         list.innerHTML = '';
         Object.entries(snap.val() || {}).forEach(([id, order]) => {
             if (order.status === "READY") {
-                list.innerHTML += `<div>${order.siNumber} <button onclick="deliver('${id}')">DELIVERED</button></div>`;
+                list.innerHTML += `<div style="padding:20px; border:1px solid #000; margin:5px;">
+                                   <strong>${order.siNumber}</strong> <button onclick="deliver('${id}')">DELIVERED</button>
+                                   </div>`;
             }
         });
     });
@@ -22,8 +24,9 @@
     window.deliver = (id) => {
         onValue(ref(db, `orders/${id}`), (snap) => {
             const data = snap.val();
-            push(ref(db, 'history'), { ...data, deliveredAt: serverTimestamp() });
-            [span_6](start_span)remove(ref(db, `orders/${id}`)); // Only once archived to history[span_6](end_span)
+            // Move to history for permanent 10-year storage
+            push(ref(db, 'history'), { ...data, deliveredAt: serverTimestamp(), status: "CLOSED" });
+            remove(ref(db, `orders/${id}`));
         }, { onlyOnce: true });
     };
 </script>
