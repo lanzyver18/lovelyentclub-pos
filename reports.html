@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>FINANCIAL ANALYTICS</title></head>
+<body>
+    <h1>DAILY SALES REPORT</h1>
+    <button onclick="zReading()" style="background:red; color:white;">GENERATE Z-READING</button>
+    <div id="stats"></div>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+    import { getDatabase, ref, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
+
+    const db = getDatabase(initializeApp({ databaseURL: "https://pos-lovelyentclub-default-rtdb.firebaseio.com" }));
+
+    window.zReading = () => {
+        if (confirm("Close sales for today? This cannot be undone.")) {
+            push(ref(db, 'z_reports'), { timestamp: serverTimestamp(), type: "Z-READING" });
+            push(ref(db, 'audit_trail'), { action: "Z_READING_GEN", time: serverTimestamp() });
+            alert("Period Closed. Data archived for audit.");
+        }
+    };
+</script>
+</body>
+</html>
