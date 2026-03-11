@@ -1,42 +1,60 @@
 <!DOCTYPE html>
 <html>
-<head><title>KDS | KITCHEN</title><style>
+<head><title>KITCHEN MONITOR</title>
+<style>
     body { background: #000; color: #fff; font-family: sans-serif; margin: 0; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; padding: 20px; }
-    .card { border: 2px solid #fff; padding: 20px; border-radius: 10px; background: #111; }
-    .btn { background: #34c759; border: none; padding: 15px; width: 100%; font-weight: bold; margin-top: 15px; cursor: pointer; border-radius: 5px; }
-</style></head>
+    .header { background: #fff; color: #000; padding: 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px; padding: 15px; }
+    .card { border: 3px solid #fff; padding: 20px; border-radius: 12px; background: #111; display: flex; flex-direction: column; min-height: 250px; }
+    .btn { background: #34c759; border: none; padding: 15px; width: 100%; color: #000; font-weight: 900; border-radius: 8px; cursor: pointer; margin-top: auto; }
+</style>
+</head>
 <body>
-    <div style="padding:20px; background:#fff; color:#000; font-weight:bold;">KITCHEN ORDERS</div>
+    <div class="header">
+        <div>STATION: <select id="stationSelect" onchange="location.reload()"><option>Food</option><option>Bar</option></select></div>
+        <div id="clock">00:00:00</div>
+    </div>
     <div id="kdsGrid" class="grid"></div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    const config = {
-        apiKey: "AIzaSyBY1ctdRkTUktpt-uYhRqFxF37jkylxsGs",
-        authDomain: "lovelyentclub-pos.firebaseapp.com",
-        projectId: "lovelyentclub-pos",
-        databaseURL: "https://lovelyentclub-pos-default-rtdb.firebaseio.com"
+    const config = { apiKey: "AIzaSyBY1ctdRkTUktpt-uYhRqFxF37jkylxsGs", authDomain: "lovelyentclub-pos.firebaseapp.com", projectId: "lovelyentclub-pos", databaseURL: "https://lovelyentclub-pos-default-rtdb.firebaseio.com" };
+    const db = getDatabase(initializeApp(config));
+    
+    // Save station preference to browser
+    const MY_STATION = localStorage.getItem('station') || "Food";
+    document.getElementById('stationSelect').value = MY_STATION;
+    document.getElementById('stationSelect').onchange = (e) => {
+        localStorage.setItem('station', e.target.value);
+        location.reload();
     };
-    const app = initializeApp(config); const db = getDatabase(app); 
-    signInAnonymously(getAuth(app));
 
     onValue(ref(db, 'orders'), (snap) => {
         const grid = document.getElementById('kdsGrid'); grid.innerHTML = '';
-        const data = snap.val(); if (!data) return;
+        const data = snap.val(); if(!data) return;
+        
         Object.entries(data).forEach(([id, o]) => {
-            if (o.status === "PENDING") {
+            if(o.status === "PENDING") {
+                const filtered = o.details.filter(i => i.c === MY_STATION);
+                if(filtered.length === 0) return;
+
                 const card = document.createElement('div'); card.className = 'card';
-                card.innerHTML = `<h2>${o.table}</h2><p>${o.details.map(i => `• ${i.qty}x ${i.name}`).join('<br>')}</p>
-                                  <button class="btn" onclick="bump('${id}')">MARK DONE</button>`;
+                card.innerHTML = `
+                    <div style="font-size:1.5rem; border-bottom:1px solid #444; padding-bottom:10px; margin-bottom:10px;">
+                        <b>${o.table}</b> <small style="float:right; font-size:0.8rem; color:#888;">${o.siNumber}</small>
+                    </div>
+                    <div style="flex:1; font-size:1.2rem;">
+                        ${filtered.map(i=>`• ${i.n} <br><small style="color:yellow; margin-left:15px;">— ${i.mod}</small>`).join('<br><br>')}
+                    </div>
+                    <button class="btn" onclick="bump('${id}')">MARK COMPLETED</button>`;
                 grid.appendChild(card);
             }
         });
     });
-    window.bump = (id) => update(ref(db, `orders/${id}`), { status: "READY" });
+    window.bump = (id) => update(ref(db, `orders/${id}`), {status:"READY"});
+    setInterval(()=>document.getElementById('clock').innerText = new Date().toLocaleTimeString(), 1000);
 </script>
 </body>
 </html>
