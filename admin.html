@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Club Command | Analytics</title>
+</head>
+<body class="bg-slate-950 text-slate-200 p-8">
+    <div class="max-w-7xl mx-auto">
+        <header class="flex justify-between items-end mb-10">
+            <div>
+                <h1 class="text-4xl font-black text-white italic tracking-widest">COMMAND CENTER</h1>
+                <p class="text-slate-500 uppercase tracking-tighter">Live Revenue & Floor Analytics</p>
+            </div>
+            <div class="text-right">
+                <span class="block text-fuchsia-500 font-mono text-2xl" id="live-total">$0.00</span>
+                <span class="text-xs text-slate-400">TONIGHT'S GROSS</span>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+                <p class="text-slate-500 text-sm">Active Tables</p>
+                <h3 class="text-3xl font-bold" id="active-tables">12/20</h3>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+                <p class="text-slate-500 text-sm">Avg. Spend/Head</p>
+                <h3 class="text-3xl font-bold text-emerald-400">$84.50</h3>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+                <p class="text-slate-500 text-sm">Wait Time (Bar)</p>
+                <h3 class="text-3xl font-bold text-amber-400">4.2m</h3>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+                <p class="text-slate-500 text-sm">Bottles Remaining</p>
+                <h3 class="text-3xl font-bold text-fuchsia-400">142</h3>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+            <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+                <h4 class="mb-4 font-bold">Hourly Revenue</h4>
+                <canvas id="revenueChart"></canvas>
+            </div>
+            <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+                <h4 class="mb-4 font-bold">Top Selling Spirits</h4>
+                <canvas id="inventoryChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-app.compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-database.compat.js"></script>
+    <script src="app.js"></script>
+    <script>
+        // Chart.js Implementation
+        const ctx = document.getElementById('revenueChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['10PM', '11PM', '12AM', '1AM', '2AM', '3AM'],
+                datasets: [{
+                    label: 'Revenue ($)',
+                    data: [1200, 4500, 8900, 12000, 7000, 2000],
+                    borderColor: '#d946ef',
+                    tension: 0.4,
+                    fill: true,
+                    backgroundColor: 'rgba(217, 70, 239, 0.1)'
+                }]
+            },
+            options: { plugins: { legend: { display: false } } }
+        });
+
+        // Sync with Firebase for Live Total
+        db.ref('orders').on('value', (snap) => {
+            let total = 0;
+            snap.forEach(child => {
+                if(child.val().status === 'completed') total += 350; // Mock calculation
+            });
+            document.getElementById('live-total').innerText = `$${total.toLocaleString()}`;
+        });
+    </script>
+</body>
+</html>
