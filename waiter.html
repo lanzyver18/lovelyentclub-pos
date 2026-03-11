@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>LOVELY ENT - COMPLIANT POS</title>
+    <style>
+        .bir-header { background: #000; color: #fff; font-size: 11px; padding: 10px; text-align: center; font-family: monospace; }
+        .receipt-warning { color: #d32f2f; font-weight: 900; text-align: center; border: 2px solid #d32f2f; padding: 5px; margin: 10px; }
+    </style>
+</head>
+<body>
+    <div class="bir-header">
+        OFFICIAL BUSINESS SYSTEM | LOVELY ENT CLUB<br>
+        TIN: 123-456-789-000-000 | VAT REGISTERED<br>
+        SYSTEM ID: COMPLIANT-KDM-2026
+    </div>
+
+    <div class="receipt-warning">*** THIS IS NOT AN OFFICIAL RECEIPT ***</div>
+
+    <div id="app">
+        <button onclick="handleOrder()">SEND TO PREP</button>
+    </div>
+
+    <script type="module">
+        import { processSecureOrder } from './controller.js';
+        // Initialize Firebase...
+        
+        window.handleOrder = async () => {
+            try {
+                await processSecureOrder(db, orderData, currentTable, MENU);
+                alert("Order recorded in Audit Trail and sent to Kitchen.");
+                resetOrder();
+            } catch (e) {
+                console.error("Compliance Error: Transaction failed.");
+            }
+        };
+    </script>
+</body>
+</html>
