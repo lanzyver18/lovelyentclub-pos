@@ -1,67 +1,69 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>REPORTS | MANAGER LOGIN</title>
+    <title>REPORTS | MANAGER DASHBOARD</title>
     <style>
-        :root { --accent: #007aff; --danger: #ff3b30; }
-        body { font-family: -apple-system, sans-serif; background: #f8f9fa; margin: 0; padding-bottom: 60px; }
-        
-        /* Login Overlay */
-        #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1c1c1e; display: flex; align-items: center; justify-content: center; z-index: 9999; }
-        .login-box { background: #fff; padding: 40px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center; width: 320px; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
-        .btn-login { width: 100%; padding: 12px; background: #000; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        
-        /* Dashboard UI */
-        .content { padding: 30px; display: none; } /* Hidden until login */
-        .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .card { background: #fff; padding: 25px; border-radius: 12px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .val { font-size: 2rem; font-weight: 900; color: var(--accent); }
-        table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; }
-        th { background: #000; color: #fff; padding: 12px; text-align: left; }
-        td { padding: 12px; border-bottom: 1px solid #eee; }
-        
-        #status-bar { position: fixed; bottom: 0; left: 0; width: 100%; padding: 10px; text-align: center; font-weight: bold; }
-        .online { background: #34c759; color: #fff; }
-        .offline { background: #ff3b30; color: #fff; }
+        :root { --accent: #007aff; --bg: #f5f5f7; --danger: #ff3b30; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding-bottom: 60px; }
+        .content { padding: 30px; display: none; max-width: 1200px; margin: auto; }
+        .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .card { background: #fff; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-top: 5px solid var(--accent); }
+        .val { font-size: 1.8rem; font-weight: 900; color: #1c1c1e; }
+        .section-box { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 12px; border-bottom: 2px solid #eee; color: #888; font-size: 0.8rem; text-transform: uppercase; }
+        td { padding: 12px; border-bottom: 1px solid #f9f9f9; font-size: 0.95rem; }
+        .btn-action { padding: 10px 20px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-print { background: #000; color: #fff; }
+        .btn-void { background: var(--danger); color: #fff; padding: 5px 10px; font-size: 0.75rem; }
+        #login-overlay { position: fixed; inset: 0; background: #1c1c1e; display: flex; align-items: center; justify-content: center; z-index: 9999; }
+        .login-box { background: #fff; padding: 40px; border-radius: 20px; text-align: center; width: 320px; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; }
+        #status-bar { position: fixed; bottom: 0; width: 100%; padding: 8px; text-align: center; font-weight: bold; font-size: 0.75rem; color: #fff; }
     </style>
 </head>
 <body>
 
     <div id="login-overlay">
         <div class="login-box">
-            <h2 style="margin-top:0;">MANAGER LOGIN</h2>
-            <p style="color:#666; font-size:0.9rem;">Access restricted to Lovely ENT Management only.</p>
-            <input type="email" id="email" placeholder="Email Address">
+            <h2>MANAGER ACCESS</h2>
+            <input type="email" id="email" placeholder="Email">
             <input type="password" id="pass" placeholder="Password">
-            <button class="btn-login" onclick="managerLogin()">UNLOCK SYSTEM</button>
-            <p id="error-msg" style="color:red; font-size:0.8rem; margin-top:10px; display:none;"></p>
+            <button class="btn-action btn-print" style="width:100%; margin-top:10px;" onclick="managerLogin()">UNLOCK</button>
         </div>
     </div>
 
     <div class="content" id="dashboard">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h1>REPORTS & ANALYTICS</h1>
-            <button onclick="logout()" style="padding:8px 15px; border-radius:5px; border:1px solid #ccc; cursor:pointer;">Logout</button>
-        </div>
-        
-        <div class="metrics">
-            <div class="card"><span id="gross" class="val">₱0</span><br>GRAND TOTAL</div>
-            <div class="card"><span id="count" class="val">0</span><br>CLOSED SALES</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h1>LOVELY ENT | ANALYTICS</h1>
+            <div>
+                <button class="btn-action btn-print" onclick="window.print()">PRINT REPORT</button>
+                <button class="btn-action btn-logout" onclick="logout()">LOGOUT</button>
+            </div>
         </div>
 
-        <table>
-            <thead><tr><th>SI #</th><th>TABLE</th><th>TIME</th></tr></thead>
-            <tbody id="histBody"></tbody>
-        </table>
+        <div class="metrics">
+            <div class="card"><span id="gross" class="val">₱0</span>NON-RESETTABLE TOTAL</div>
+            <div class="card"><span id="vat" class="val">₱0</span>12% VAT</div>
+            <div class="card"><span id="net" class="val">₱0</span>NET SALES</div>
+            <div class="card"><span id="count" class="val">0</span>TXN COUNT</div>
+        </div>
+
+        <div class="section-box">
+            <h3>TRANSACTION LOG (MANAGEMENT OVERRIDE)</h3>
+            <table>
+                <thead><tr><th>SI #</th><th>TABLE</th><th>TOTAL</th><th>ACTION</th></tr></thead>
+                <tbody id="histBody"></tbody>
+            </table>
+        </div>
     </div>
 
-    <div id="status-bar" class="offline">CONNECTING TO DATABASE...</div>
+    <div id="status-bar" style="background:#888;">SYNCING...</div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, onValue, push, remove, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
     const config = {
         apiKey: "AIzaSyBY1ctdRkTUktpt-uYhRqFxF37jkylxsGs",
@@ -74,65 +76,91 @@
     const db = getDatabase(app);
     const auth = getAuth(app);
 
-    // LOGIN FUNCTION
     window.managerLogin = () => {
-        const email = document.getElementById('email').value;
-        const pass = document.getElementById('pass').value;
-        const err = document.getElementById('error-msg');
-        
-        signInWithEmailAndPassword(auth, email, pass)
-            .catch(error => {
-                err.style.display = "block";
-                err.innerText = "Invalid credentials. Access denied.";
-            });
+        signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value)
+        .catch(() => alert("Access Denied."));
     };
 
-    // LOGOUT FUNCTION
     window.logout = () => { signOut(auth).then(() => location.reload()); };
 
-    // AUTH OBSERVER: Show/Hide UI based on login state
     onAuthStateChanged(auth, (user) => {
-        const overlay = document.getElementById('login-overlay');
-        const dashboard = document.getElementById('dashboard');
-        
-        if (user && !user.isAnonymous) { // Only allow Email/Password users
-            overlay.style.display = "none";
-            dashboard.style.display = "block";
-            initDataListeners();
-        } else {
-            overlay.style.display = "flex";
-            dashboard.style.display = "none";
+        if (user && !user.isAnonymous) {
+            document.getElementById('login-overlay').style.display = "none";
+            document.getElementById('dashboard').style.display = "block";
+            loadData();
         }
     });
 
-    // DATA LISTENERS
-    function initDataListeners() {
-        // Status Bar
-        onValue(ref(db, '.info/connected'), (snap) => {
-            const bar = document.getElementById('status-bar');
-            bar.innerText = snap.val() ? "SECURE CONNECTION ACTIVE" : "OFFLINE";
-            bar.className = snap.val() ? "online" : "offline";
-        });
-
-        // Revenue Total
+    function loadData() {
         onValue(ref(db, 'system_controls'), (snap) => {
             const d = snap.val();
-            if (d) document.getElementById('gross').innerText = "₱" + (d.accumulatedGrandTotal || 0).toLocaleString();
+            if (d) {
+                const total = d.accumulatedGrandTotal || 0;
+                document.getElementById('gross').innerText = "₱" + total.toLocaleString();
+                document.getElementById('vat').innerText = "₱" + (total * 0.12).toLocaleString();
+                document.getElementById('net').innerText = "₱" + (total / 1.12).toLocaleString(undefined, {maximumFractionDigits:0});
+            }
         });
 
-        // Sales Table
         onValue(ref(db, 'history'), (snap) => {
             const body = document.getElementById('histBody');
             body.innerHTML = '';
             const data = snap.val();
             if (!data) return;
-            const items = Object.values(data);
-            document.getElementById('count').innerText = items.length;
-            items.reverse().forEach(o => {
-                body.innerHTML += `<tr><td>${o.siNumber}</td><td>${o.table}</td><td>${new Date(o.deliveredAt).toLocaleTimeString()}</td></tr>`;
+
+            Object.entries(data).reverse().forEach(([id, o]) => {
+                body.innerHTML += `<tr>
+                    <td><b>${o.siNumber}</b></td>
+                    <td>${o.table}</td>
+                    <td>₱${(o.totalValue || 0).toLocaleString()}</td>
+                    <td><button class="btn-action btn-void" onclick="voidOrder('${id}', '${o.siNumber}', ${o.totalValue})">VOID</button></td>
+                </tr>`;
             });
+            document.getElementById('count').innerText = Object.keys(data).length;
+        });
+
+        onValue(ref(db, '.info/connected'), (snap) => {
+            const bar = document.getElementById('status-bar');
+            bar.style.background = snap.val() ? "#34c759" : "#ff3b30";
+            bar.innerText = snap.val() ? "SECURE MANAGER LINK ACTIVE" : "OFFLINE";
         });
     }
+
+    window.voidOrder = (id, si, amount) => {
+        const reason = prompt("Enter reason for VOID (Required for Audit):");
+        if (!reason) return alert("Void canceled. Reason is mandatory.");
+
+        if (confirm(`Confirm VOID for ${si}? This will be logged permanently.`)) {
+            // 1. Move to Void History
+            onValue(ref(db, `history/${id}`), (snap) => {
+                const data = snap.val();
+                push(ref(db, 'voided_history'), {
+                    ...data,
+                    voidReason: reason,
+                    voidedBy: auth.currentUser.email,
+                    voidedAt: serverTimestamp()
+                }).then(() => {
+                    // 2. Remove from active history
+                    remove(ref(db, `history/${id}`));
+                    
+                    // 3. Log to Audit Trail
+                    push(ref(db, 'audit_trail'), {
+                        action: "VOID_SALE",
+                        si: si,
+                        reason: reason,
+                        amount: amount,
+                        manager: auth.currentUser.email,
+                        time: serverTimestamp()
+                    });
+
+                    // 4. Adjust Non-Resettable Total (Optional: Most BIR systems keep the total but flag the void)
+                    // We will keep the Grand Total as is to show "Gross before Voids" as per most accreditation rules.
+                    
+                    alert("Order Voided and Logged.");
+                });
+            }, { onlyOnce: true });
+        }
+    };
 </script>
 </body>
 </html>
