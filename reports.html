@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <body>
-    <h1>FINANCIAL REPORTS</h1>
-    <button onclick="zReading()">GENERATE DAILY Z-READING</button>
+    <h1>BIR COMPLIANCE CENTER</h1>
+    <button onclick="zReading()">GENERATE Z-READING</button>
     <button onclick="exportEIS()">EXPORT FOR BIR (EIS 2026)</button>
 
 <script type="module">
@@ -12,19 +12,16 @@
     const db = getDatabase(initializeApp({ databaseURL: "https://pos-lovelyentclub-default-rtdb.firebaseio.com" }));
 
     window.zReading = () => {
-        if (confirm("Close day? This cannot be undone.")) {
-            push(ref(db, 'z_reports'), { timestamp: serverTimestamp(), action: "Z-READING" });
-            alert("Z-Reading Generated. Sales archived for 10 years.");
-        }
+        if (!confirm("This will close the current financial period. Continue?")) return;
+        push(ref(db, 'z_reports'), { timestamp: serverTimestamp(), action: "Z_READING" });
+        alert("Z-Reading logged. Data archived according to 10-year rule.");
     };
 
     window.exportEIS = () => {
         onValue(ref(db, 'history'), (snap) => {
-            const data = JSON.stringify(snap.val(), null, 2);
-            const blob = new Blob([data], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
+            const blob = new Blob([JSON.stringify(snap.val(), null, 2)], { type: 'application/json' });
             const a = document.createElement('a');
-            a.href = url;
+            a.href = URL.createObjectURL(blob);
             a.download = `BIR_EIS_2026_EXPORT.json`;
             a.click();
         }, { onlyOnce: true });
