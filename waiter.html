@@ -1,74 +1,105 @@
 <!DOCTYPE html>
 <html>
-<head><title>POS | WAITER</title><style>
-    body { font-family: sans-serif; display: flex; height: 100vh; margin: 0; background: #f0f0f0; }
-    .tables { width: 80px; background: #000; color: #fff; display: flex; flex-direction: column; align-items: center; }
-    .t-btn { width: 60px; height: 60px; border: 1px solid #444; margin: 5px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 8px; font-weight: bold; }
-    .t-btn.active { background: #007aff; border: none; }
-    .menu { flex: 1; padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
-    .item { background: #fff; padding: 20px; border-radius: 10px; text-align: center; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    .cart { width: 300px; background: #fff; border-left: 1px solid #ccc; padding: 20px; display: flex; flex-direction: column; }
-    .send-btn { background: #000; color: #fff; padding: 20px; border: none; font-weight: bold; cursor: pointer; border-radius: 10px; margin-top: auto; }
-</style></head>
+<head>
+    <meta charset="UTF-8">
+    <title>POS | WAITER TERMINAL</title>
+    <style>
+        :root { --accent: #007aff; --bg: #f2f2f7; }
+        body { font-family: -apple-system, sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); overflow: hidden; }
+        .sidebar { width: 80px; background: #000; color: #fff; display: flex; flex-direction: column; align-items: center; padding-top: 15px; }
+        .main { flex: 1; display: flex; flex-direction: column; }
+        .cart { width: 350px; background: #fff; border-left: 1px solid #ddd; display: flex; flex-direction: column; }
+        .t-btn { width: 60px; height: 60px; border: 1px solid #444; margin: 5px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 12px; font-weight: bold; }
+        .t-btn.active { background: var(--accent); border: none; }
+        .search-bar { padding: 15px; background: #fff; border-bottom: 1px solid #ddd; }
+        .search-bar input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; }
+        .menu-grid { padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; overflow-y: auto; }
+        .item { background: #fff; padding: 15px; border-radius: 12px; text-align: center; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .footer { padding: 20px; background: #f9f9f9; border-top: 1px solid #ddd; }
+        .btn-send { width: 100%; padding: 18px; background: #000; color: #fff; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; }
+        #status-bar { padding: 5px; text-align: center; color: #fff; font-size: 0.7rem; font-weight: bold; }
+    </style>
+</head>
 <body>
-    <div id="tableList" class="tables"></div>
-    <div id="menuGrid" class="menu"></div>
+    <div class="sidebar" id="tableList"></div>
+    <div class="main">
+        <div class="search-bar"><input type="text" id="search" placeholder="Search Menu..." oninput="renderMenu()"></div>
+        <div class="menu-grid" id="menuGrid"></div>
+    </div>
     <div class="cart">
-        <h3 id="tableHead">Select Table</h3>
-        <div id="cartItems" style="flex:1"></div>
-        <button class="send-btn" onclick="sendOrder()">SEND TO KITCHEN</button>
+        <div id="status-bar" style="background: red;">OFFLINE</div>
+        <div style="padding:15px; background:#000; color:#fff; font-weight:bold;" id="tableTitle">SELECT TABLE</div>
+        <div id="cartDisplay" style="flex:1; padding:15px; overflow-y:auto;"></div>
+        <div style="padding:15px; background:#fff9f0; display:flex; gap:5px;">
+            <button onclick="applyDisc(0.20)" style="flex:1; background:#ff9500; color:white; border:none; padding:8px; border-radius:5px; font-size:0.7rem; cursor:pointer;">SC/PWD (20%)</button>
+            <button onclick="applyDisc(0)" style="flex:1; background:#ccc; border:none; padding:8px; border-radius:5px; font-size:0.7rem; cursor:pointer;">REGULAR</button>
+        </div>
+        <div class="footer">
+            <h2 id="totalTxt">₱0</h2>
+            <button class="btn-send" onclick="sendOrder()">SEND TO KITCHEN</button>
+        </div>
     </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getDatabase, ref, runTransaction, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, runTransaction, push, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    const config = {
-        apiKey: "AIzaSyBY1ctdRkTUktpt-uYhRqFxF37jkylxsGs",
-        authDomain: "lovelyentclub-pos.firebaseapp.com",
-        projectId: "lovelyentclub-pos",
-        databaseURL: "https://lovelyentclub-pos-default-rtdb.firebaseio.com"
-    };
-    const app = initializeApp(config); const auth = getAuth(app); const db = getDatabase(app);
+    const config = { apiKey: "AIzaSyBY1ctdRkTUktpt-uYhRqFxF37jkylxsGs", authDomain: "lovelyentclub-pos.firebaseapp.com", projectId: "lovelyentclub-pos", databaseURL: "https://lovelyentclub-pos-default-rtdb.firebaseio.com" };
+    const app = initializeApp(config); const db = getDatabase(app); const auth = getAuth(app);
     signInAnonymously(auth);
 
-    const MENU = { "Burger": 280, "Wings": 250, "Beer": 120, "Pizza": 450 };
-    const TABLES = ["T1", "T2", "T3", "C1", "C2", "V1"];
-    let cart = {}; let currentTable = "";
+    const MENU = [{n:"Burger",p:280,c:"Food"},{n:"Wings",p:250,c:"Food"},{n:"Beer",p:120,c:"Bar"},{n:"Soda",p:80,c:"Bar"}];
+    let cart = []; let curT = ""; let disc = 0;
 
-    document.getElementById('tableList').innerHTML = TABLES.map(t => `<div class="t-btn" onclick="setT(this, '${t}')">${t}</div>`).join('');
-    document.getElementById('menuGrid').innerHTML = Object.entries(MENU).map(([n, p]) => `<div class="item" onclick="add('${n}')"><b>${n}</b><br>₱${p}</div>`).join('');
-
-    window.setT = (el, t) => { 
+    // Render Tables
+    document.getElementById('tableList').innerHTML = ["T1","T2","T3","T4","V1"].map(t => `<div class="t-btn" onclick="setT(this,'${t}')">${t}</div>`).join('');
+    
+    window.setT = (el,t) => {
         document.querySelectorAll('.t-btn').forEach(b => b.classList.remove('active'));
-        el.classList.add('active'); currentTable = t;
-        document.getElementById('tableHead').innerText = "TABLE: " + t;
+        el.classList.add('active'); curT = t;
+        document.getElementById('tableTitle').innerText = "TABLE: " + t;
     };
-    window.add = (n) => { cart[n] = (cart[n] || 0) + 1; drawCart(); };
 
-    function drawCart() {
-        document.getElementById('cartItems').innerHTML = Object.entries(cart).map(([n, q]) => `<div>${q}x ${n}</div>`).join('');
+    window.renderMenu = () => {
+        const q = document.getElementById('search').value.toLowerCase();
+        document.getElementById('menuGrid').innerHTML = MENU.filter(i=>i.n.toLowerCase().includes(q)).map(i=>`
+            <div class="item" onclick="add('${i.n}',${i.p},'${i.c}')"><b>${i.n}</b><br>₱${i.p}</div>`).join('');
+    };
+
+    window.add = (n,p,c) => {
+        const mod = prompt("Instructions? (e.g. No Ice)", "None");
+        cart.push({n,p,c,mod}); updateUI();
+    };
+
+    window.applyDisc = (v) => { disc = v; updateUI(); };
+
+    function updateUI() {
+        const d = document.getElementById('cartDisplay');
+        d.innerHTML = cart.map((i,idx)=>`<div style="border-bottom:1px solid #eee; padding:5px;"><b>${i.n}</b><br><small>${i.mod}</small></div>`).join('');
+        const total = cart.reduce((a,b)=>a+b.p,0) * (1-disc);
+        document.getElementById('totalTxt').innerText = "₱" + total.toLocaleString();
     }
 
     window.sendOrder = async () => {
-        if (!currentTable || Object.keys(cart).length === 0) return alert("Missing items or table!");
-        const sysRef = ref(db, 'system_controls');
-        await runTransaction(sysRef, (curr) => {
-            let total = 0; Object.entries(cart).forEach(([n, q]) => total += (MENU[n] * q));
-            if (!curr) return { lastSI: 1, accumulatedGrandTotal: total };
-            return { lastSI: curr.lastSI + 1, accumulatedGrandTotal: curr.accumulatedGrandTotal + total };
-        }).then((res) => {
-            const snap = res.snapshot.val();
-            const si = `SI-${String(snap.lastSI).padStart(6, '0')}`;
-            push(ref(db, 'orders'), {
-                siNumber: si, table: currentTable, 
-                details: Object.entries(cart).map(([n, q]) => ({ name: n, qty: q })),
-                timestamp: Date.now(), status: "PENDING"
-            });
-            alert("Sent: " + si); cart = {}; drawCart();
+        if(!curT || cart.length === 0) return alert("Select Table/Items");
+        const total = cart.reduce((a,b)=>a+b.p,0) * (1-disc);
+        await runTransaction(ref(db,'system_controls'),(c)=>{
+            if(!c) return {lastSI:1,accumulatedGrandTotal:total};
+            return {lastSI:c.lastSI+1,accumulatedGrandTotal:c.accumulatedGrandTotal+total};
+        }).then(res => {
+            const si = "SI-"+String(res.snapshot.val().lastSI).padStart(6,'0');
+            push(ref(db,'orders'), {siNumber:si, table:curT, details:cart, totalValue:total, status:"PENDING", timestamp:Date.now()});
+            alert("SENT: " + si); cart=[]; updateUI();
         });
     };
+
+    onValue(ref(db,'.info/connected'),(s)=>{
+        const b = document.getElementById('status-bar');
+        b.style.background = s.val() ? "#34c759" : "red";
+        b.innerText = s.val() ? "ONLINE" : "OFFLINE";
+    });
+    renderMenu();
 </script>
 </body>
 </html>
