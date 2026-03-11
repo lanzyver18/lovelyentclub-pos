@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LOVELY ENT | UNIVERSAL ERP</title>
+    <title>LOVELY ENT | UNIVERSAL ERP v5.2</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -45,25 +45,28 @@
         .step-box { background: #fff; width: 360px; border-radius: 30px; padding: 40px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
         .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
         .key { background: #F2F2F7; height: 60px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; font-weight: 700; cursor: pointer; }
-        .key:active { background: #E5E5EA; }
+        
+        /* Modal Style for Reservations */
+        #res-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 10001; }
+        .res-box { background: #fff; width: 450px; border-radius: 30px; padding: 40px; }
 
         /* Status & Auth */
         #status { position: fixed; bottom: 15px; right: 20px; padding: 6px 15px; border-radius: 20px; font-size: 0.7rem; color: #fff; font-weight: 800; }
         #gate { position: fixed; inset: 0; background: var(--dark); display: flex; align-items: center; justify-content: center; z-index: 10000; }
         .gate-box { background: #fff; padding: 50px; border-radius: 30px; width: 400px; text-align: center; }
-        input { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: 1px solid var(--border); background: #F5F5F7; }
-        .btn { padding: 15px; width: 100%; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; background: var(--brand); color: #fff; margin-top: 10px; }
+        input, select, textarea { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: 1px solid var(--border); background: #F5F5F7; }
+        .btn { padding: 15px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; background: var(--brand); color: #fff; }
     </style>
 </head>
 <body>
 
     <div id="gate">
         <div class="gate-box">
-            <h2 style="margin:0 0 10px 0">Lovely ENT ERP</h2>
+            <h2 style="margin:0">Lovely ENT ERP</h2>
             <p style="color:#8E8E93; margin-bottom:30px">Enter administrative credentials</p>
             <input type="email" id="email" placeholder="Email Address">
             <input type="password" id="pass" placeholder="Password">
-            <button onclick="login()" class="btn">Unlock Suite</button>
+            <button onclick="login()" class="btn" style="width:100%">Unlock Suite</button>
         </div>
     </div>
 
@@ -81,17 +84,32 @@
         </div>
     </div>
 
+    <div id="res-modal">
+        <div class="res-box">
+            <h3>New VIP Reservation</h3>
+            <select id="res-member"><option value="">Guest Name...</option></select>
+            <select id="res-table">
+                <option>T1</option><option>T2</option><option>T3</option><option>T4</option>
+                <option>V1</option><option>V2</option>
+            </select>
+            <input type="date" id="res-date">
+            <textarea id="res-notes" placeholder="Special requests (e.g. Birthday, Specific Bottle)"></textarea>
+            <button class="btn" style="width:100%" onclick="saveRes()">Confirm Booking</button>
+            <p onclick="document.getElementById('res-modal').style.display='none'" style="text-align:center; margin-top:15px; cursor:pointer; color:#8E8E93">Discard</p>
+        </div>
+    </div>
+
     <div class="sidebar">
         <div class="sidebar-header">LOVELY ENT</div>
         <div class="nav-group">
             <div class="nav-item active" onclick="tab('dashboard')"><i>📊</i> Dashboard</div>
             <div class="nav-item" onclick="tab('offline')"><i>📡</i> Offline Logs</div>
             <div class="nav-item" onclick="tab('reports')"><i>📝</i> Reports</div>
-            <div class="nav-item" onclick="tab('customers')"><i>💎</i> Customers</div>
+            <div class="nav-item" onclick="tab('customers')"><i>💎</i> CRM & VIP</div>
             <div class="nav-item" onclick="tab('engage')"><i>📣</i> Engage</div>
-            <div class="nav-item" onclick="tab('products')"><i>🍴</i> Products</div>
-            <div class="nav-item" onclick="tab('inventory')"><i>📦</i> Stock Management</div>
-            <div class="nav-item" onclick="tab('employees')"><i>👥</i> Employees</div>
+            <div class="nav-item" onclick="tab('products')"><i>🍴</i> Products Master</div>
+            <div class="nav-item" onclick="tab('inventory')"><i>📦</i> Stock Control</div>
+            <div class="nav-item" onclick="tab('employees')"><i>👥</i> Employees HR</div>
             <div class="nav-item" onclick="tab('promotions')"><i>🎁</i> Promotions</div>
             <div class="nav-item" onclick="tab('settings')"><i>⚙️</i> Settings</div>
         </div>
@@ -106,31 +124,29 @@
                 <div class="grid">
                     <div class="card"><h4>Net Revenue</h4><span id="gross" class="big">₱0</span></div>
                     <div class="card"><h4>Active Tables</h4><span id="active-t" class="big">0</span></div>
-                    <div class="card"><h4>Total Members</h4><span id="mem-c" class="big">0</span></div>
+                    <div class="card"><h4>VIP Bookings</h4><span id="res-count" class="big">0</span></div>
+                </div>
+                <div class="card" style="margin-top:20px;">
+                    <h3>Upcoming Today</h3>
+                    <div id="dashboard-res-list" style="color:#8E8E93">No VIP arrivals scheduled.</div>
                 </div>
             </div>
 
-            <div id="offline" class="section">
-                <h3>Offline Sync Audit</h3>
-                <div class="table-wrap"><table><thead><tr><th>Cached TXN</th><th>Device</th><th>Status</th></tr></thead><tbody id="off-b"></tbody></table></div>
+            <div id="customers" class="section">
+                <div style="display:flex; justify-content:space-between; margin-bottom:20px">
+                    <h3>Member Relationship Manager</h3>
+                    <div>
+                        <button class="btn" onclick="openResModal()" style="background:#000; margin-right:10px">Book Table</button>
+                        <button class="btn" onclick="addM()">Register VIP</button>
+                    </div>
+                </div>
+                <div class="table-wrap"><table><thead><tr><th>Name</th><th>Tier</th><th>Total Spend</th></tr></thead><tbody id="mem-b"></tbody></table></div>
+                <h3 style="margin-top:40px">Reservation History</h3>
+                <div class="table-wrap"><table><thead><tr><th>Date</th><th>Table</th><th>Guest</th><th>Notes</th><th>Action</th></tr></thead><tbody id="res-b"></tbody></table></div>
             </div>
 
             <div id="reports" class="section">
-                <div class="table-wrap"><table><thead><tr><th>SI Number</th><th>Table</th><th>Amount</th><th>Timestamp</th><th>Action</th></tr></thead><tbody id="hist-b"></tbody></table></div>
-            </div>
-
-            <div id="customers" class="section">
-                <div style="display:flex; justify-content:space-between; margin-bottom:20px"><h3>Member CRM</h3><button class="btn" onclick="addM()" style="width:auto">Register VIP</button></div>
-                <div class="table-wrap"><table><thead><tr><th>Name</th><th>Tier</th><th>Total Spend</th></tr></thead><tbody id="mem-b"></tbody></table></div>
-            </div>
-
-            <div id="engage" class="section">
-                <div class="card"><h3>Broadcaster</h3><textarea placeholder="Message to members..." style="height:150px; margin-bottom:20px"></textarea><button class="btn">Send via SMS/Email</button></div>
-            </div>
-
-            <div id="products" class="section">
-                <div style="display:flex; justify-content:space-between; margin-bottom:20px"><h3>Menu Master</h3><button class="btn" onclick="addP()" style="width:auto">+ New SKU</button></div>
-                <div class="table-wrap"><table><thead><tr><th>Item</th><th>Category</th><th>Base Price</th></tr></thead><tbody id="prod-b"></tbody></table></div>
+                <div class="table-wrap"><table><thead><tr><th>SI #</th><th>Table</th><th>Amount</th><th>Time</th><th>Control</th></tr></thead><tbody id="hist-b"></tbody></table></div>
             </div>
 
             <div id="inventory" class="section">
@@ -142,14 +158,11 @@
                 <div class="table-wrap"><table><thead><tr><th>Employee</th><th>Station</th><th>PIN Code</th></tr></thead><tbody id="emp-b"></tbody></table></div>
             </div>
 
-            <div id="promotions" class="section">
-                <div class="card"><h3>Active Promos</h3><p>Happy Hour: 20% Off Liquor (9PM-11PM)</p></div>
-            </div>
-
-            <div id="settings" class="section">
-                <div class="card"><p id="db-u" style="font-family:monospace; font-size:0.8rem"></p></div>
-            </div>
-
+            <div id="offline" class="section"><h3>Sync Diagnostics</h3></div>
+            <div id="engage" class="section"><h3>Broadcast Center</h3></div>
+            <div id="products" class="section"><h3>SKU Master List</h3><tbody id="prod-b"></tbody></div>
+            <div id="promotions" class="section"><h3>Campaign Rules</h3></div>
+            <div id="settings" class="section"><div class="card"><p id="db-u" style="font-family:monospace;"></p></div></div>
         </div>
     </div>
 
@@ -181,45 +194,73 @@
         onValue(ref(db, 'system_controls'), s => { if(s.val()) document.getElementById('gross').innerText = "₱" + s.val().accumulatedGrandTotal.toLocaleString(); });
         onValue(ref(db, 'orders'), s => { document.getElementById('active-t').innerText = s.val() ? Object.keys(s.val()).length : 0; });
         
-        onValue(ref(db, 'history'), s => {
-            const b = document.getElementById('hist-b'); b.innerHTML = ''; if(!s.val()) return;
-            Object.entries(s.val()).reverse().forEach(([id, o]) => {
-                b.innerHTML += `<tr><td>${o.siNumber}</td><td>${o.table}</td><td>₱${o.totalValue.toLocaleString()}</td><td>${new Date(o.deliveredAt).toLocaleTimeString()}</td><td><button onclick="voidTX('${id}')" style="border:none; background:none; color:var(--danger); font-weight:700">VOID</button></td></tr>`;
+        onValue(ref(db, 'members'), s => {
+            const b = document.getElementById('mem-b'); const sel = document.getElementById('res-member');
+            b.innerHTML = ''; sel.innerHTML = '<option value="">Guest Name...</option>';
+            if(!s.val()) return;
+            Object.entries(s.val()).forEach(([id, m]) => {
+                b.innerHTML += `<tr><td>${m.name}</td><td>${m.tier}</td><td>₱${(m.spend || 0).toLocaleString()}</td></tr>`;
+                sel.innerHTML += `<option value="${m.name}">${m.name}</option>`;
+            });
+        });
+
+        // LIVE RESERVATION SYNC
+        onValue(ref(db, 'reservations'), s => {
+            const b = document.getElementById('res-b'); const dash = document.getElementById('dashboard-res-list');
+            b.innerHTML = ''; dash.innerHTML = '';
+            if(!s.val()) { document.getElementById('res-count').innerText = "0"; return; }
+            const entries = Object.entries(s.val());
+            document.getElementById('res-count').innerText = entries.length;
+            entries.forEach(([id, r]) => {
+                const row = `<tr><td>${r.date}</td><td><b>${r.table}</b></td><td>${r.name}</td><td>${r.notes}</td><td><button onclick="voidRes('${id}')">Cancel</button></td></tr>`;
+                b.innerHTML += row;
+                dash.innerHTML += `<div style="padding:10px; border-bottom:1px solid #eee;"><b>${r.table}</b>: ${r.name} (${r.notes})</div>`;
             });
         });
 
         onValue(ref(db, 'inventory'), s => {
-            const sb = document.getElementById('stock-b'); const pb = document.getElementById('prod-b'); 
-            sb.innerHTML = ''; pb.innerHTML = ''; if(!s.val()) return;
+            const sb = document.getElementById('stock-b'); sb.innerHTML = ''; if(!s.val()) return;
             Object.entries(s.val()).forEach(([n, d]) => {
-                sb.innerHTML += `<tr><td><b>${n}</b></td><td>${d.qty}</td><td><button onclick="openS('${n}', 'inventory')">ADD</button></td></tr>`;
-                pb.innerHTML += `<tr><td>${n}</td><td>${d.category}</td><td>₱150</td></tr>`;
+                sb.innerHTML += `<tr><td><b>${n}</b></td><td>${d.qty}</td><td><button onclick="openS('${n}', 'inventory')">REFILL</button></td></tr>`;
             });
         });
 
-        onValue(ref(db, 'members'), s => {
-            const b = document.getElementById('mem-b'); b.innerHTML = ''; if(!s.val()) return;
-            document.getElementById('mem-c').innerText = Object.keys(s.val()).length;
-            Object.entries(s.val()).forEach(([id, m]) => {
-                b.innerHTML += `<tr><td>${m.name}</td><td>${m.tier}</td><td>₱${(m.spend || 0).toLocaleString()}</td></tr>`;
+        onValue(ref(db, 'history'), s => {
+            const b = document.getElementById('hist-b'); b.innerHTML = ''; if(!s.val()) return;
+            Object.entries(s.val()).reverse().forEach(([id, o]) => {
+                b.innerHTML += `<tr><td>${o.siNumber}</td><td>${o.table}</td><td>₱${o.totalValue.toLocaleString()}</td><td>${new Date(o.deliveredAt).toLocaleTimeString()}</td><td><button onclick="voidTX('${id}')">VOID</button></td></tr>`;
             });
         });
 
-        // Live Employee List with PIN Editing
         onValue(ref(db, 'employees'), s => {
             const b = document.getElementById('emp-b'); b.innerHTML = ''; if(!s.val()) return;
             Object.entries(s.val()).forEach(([id, e]) => {
-                b.innerHTML += `<tr><td><b>${e.name}</b></td><td>${e.station}</td><td><button onclick="openS('${id}', 'employees')">${e.pin || 'SET PIN'}</button></td></tr>`;
+                b.innerHTML += `<tr><td><b>${e.name}</b></td><td>${e.station}</td><td><button onclick="openS('${id}', 'employees')">${e.pin || 'SET'}</button></td></tr>`;
             });
         });
 
         onValue(ref(db, '.info/connected'), s => {
             const b = document.getElementById('status'); b.className = s.val() ? "online" : "offline";
-            b.innerText = s.val() ? "● CHANNEL_ACTIVE" : "○ DISCONNECTED";
+            b.innerText = s.val() ? "● SECURE_CHANNEL" : "○ DISCONNECTED";
         });
     }
 
-    // Interactive Stepper Logic
+    // RESERVATION LOGIC
+    window.openResModal = () => document.getElementById('res-modal').style.display = 'flex';
+    window.saveRes = () => {
+        const name = document.getElementById('res-member').value;
+        const table = document.getElementById('res-table').value;
+        const date = document.getElementById('res-date').value;
+        const notes = document.getElementById('res-notes').value;
+        if(!name || !date) return alert("Fill Name and Date");
+        push(ref(db, 'reservations'), { name, table, date, notes }).then(() => {
+            document.getElementById('res-modal').style.display = 'none';
+            alert("Booking Confirmed");
+        });
+    };
+    window.voidRes = (id) => { if(confirm("Cancel Booking?")) remove(ref(db, `reservations/${id}`)); };
+
+    // SHARED STEPPER
     let curI = ""; let curM = ""; let sVal = "";
     window.openS = (id, m) => { curI = id; curM = m; sVal = ""; document.getElementById('step-val').innerText = "0"; document.getElementById('stepper').style.display = 'flex'; };
     window.closeS = () => document.getElementById('stepper').style.display = 'none';
@@ -228,17 +269,14 @@
         else if(k === 'OK') {
             if(curM === 'inventory') {
                 onValue(ref(db, `inventory/${curI}/qty`), s => { update(ref(db, `inventory/${curI}`), { qty: (s.val() || 0) + parseInt(sVal || 0) }); }, {onlyOnce:true});
-            } else if(curM === 'employees') {
-                update(ref(db, `employees/${curI}`), { pin: sVal });
-            }
+            } else if(curM === 'employees') { update(ref(db, `employees/${curI}`), { pin: sVal }); }
             closeS();
         } else sVal += k;
         document.getElementById('step-val').innerText = sVal || "0";
     };
 
-    window.addE = () => { const n = prompt("Name:"); const s = prompt("Station (Waiter/Kitchen/Bar):"); if(n) push(ref(db, 'employees'), { name: n, station: s, pin: "0000" }); };
+    window.addE = () => { const n = prompt("Name:"); const s = prompt("Station:"); if(n) push(ref(db, 'employees'), { name: n, station: s, pin: "0000" }); };
     window.addM = () => { const n = prompt("Name:"); if(n) set(ref(db, `members/${Date.now()}`), { name: n, tier: "Gold", spend: 0 }); };
-    window.addP = () => { const n = prompt("Name:"); if(n) set(ref(db, `inventory/${n}`), { qty: 0, category: "Bar" }); };
     window.voidTX = (id) => { if(confirm("Void?")) onValue(ref(db,`history/${id}`), s => { push(ref(db,'voided_history'), {...s.val(), voidedAt: serverTimestamp()}).then(()=>remove(ref(db,`history/${id}`))); }, {onlyOnce:true}); };
     setInterval(() => { document.getElementById('clk').innerText = new Date().toLocaleTimeString(); }, 1000);
 </script>
